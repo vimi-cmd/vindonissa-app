@@ -209,7 +209,7 @@ function QuickButton({ icon: Icon, label, onClick }) {
   );
 }
 
-function Dashboard({ go }) {
+function Dashboard({ go, openProject }) {
   const projects = getStoredProjects();
 
   return (
@@ -242,7 +242,7 @@ function Dashboard({ go }) {
         )}
 
         {projects.slice(0, 8).map((project) => (
-          <button key={project.id} style={styles.project} onClick={() => go(project.type === "Termin" ? "appointments" : "config")}>
+          <button key={project.id} style={styles.project} onClick={() => openProject(project)}>
             <div style={styles.projectImg}></div>
             <div style={{ flex: 1, textAlign: "left" }}>
               <b>{project.title}</b>
@@ -291,7 +291,7 @@ function Products({ go }) {
   );
 }
 
-function Configurator({ go }) {
+function Configurator({ go, selectedProject }) {
   const [product, setProduct] = useState(products[0]);
   const [color, setColor] = useState(colors[0]);
   const [w, setW] = useState(120);
@@ -300,6 +300,10 @@ function Configurator({ go }) {
   const [room, setRoom] = useState("Wohnzimmer");
   const [meshType, setMeshType] = useState(products[0].meshOptions[0]);
   const [quoteItems, setQuoteItems] = useState(() => {
+    if (selectedProject?.type === "Offerte" && selectedProject.items) {
+      return selectedProject.items;
+    }
+
     try {
       return JSON.parse(localStorage.getItem("vindonissaQuoteItems") || "[]");
     } catch {
@@ -307,12 +311,18 @@ function Configurator({ go }) {
     }
   });
 
-  const [customer, setCustomer] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    note: ""
+  const [customer, setCustomer] = useState(() => {
+    if (selectedProject?.type === "Offerte" && selectedProject.customer) {
+      return selectedProject.customer;
+    }
+
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      note: ""
+    };
   });
 
   const [photos, setPhotos] = useState([]);
@@ -534,7 +544,13 @@ function Configurator({ go }) {
     <Phone>
       <Header title="Offerte erstellen" back go={go} />
       <main style={styles.page}>
-        <h3>Produkt hinzufügen</h3>
+        <h3>{selectedProject?.type === "Offerte" ? "Offerte bearbeiten" : "Produkt hinzufügen"}</h3>
+
+        {selectedProject?.type === "Offerte" && (
+          <div style={styles.noticeBox}>
+            Gespeicherte Offertenanfrage geladen.
+          </div>
+        )}
 
         <input
           style={styles.formInput}
@@ -872,16 +888,22 @@ function Offers({ go }) {
   );
 }
 
-function Appointments({ go }) {
-  const [booking, setBooking] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    type: "Ausmessung vor Ort",
-    date: "",
-    time: "",
-    address: "",
-    note: ""
+function Appointments({ go, selectedProject }) {
+  const [booking, setBooking] = useState(() => {
+    if (selectedProject?.type === "Termin" && selectedProject.booking) {
+      return selectedProject.booking;
+    }
+
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      type: "Ausmessung vor Ort",
+      date: "",
+      time: "",
+      address: "",
+      note: ""
+    };
   });
 
   function update(field, value) {
@@ -925,8 +947,14 @@ function Appointments({ go }) {
     <Phone>
       <Header title="Termine" go={go} />
       <main style={styles.page}>
-        <h1 style={styles.h1}>Termin buchen</h1>
+        <h1 style={styles.h1}>{selectedProject?.type === "Termin" ? "Termin bearbeiten" : "Termin buchen"}</h1>
         <p style={styles.smallMuted}>Buchen Sie eine Ausmessung, Beratung oder Montageanfrage.</p>
+
+        {selectedProject?.type === "Termin" && (
+          <div style={styles.noticeBox}>
+            Gespeicherte Terminanfrage geladen.
+          </div>
+        )}
 
         <form onSubmit={submitBooking} style={styles.form}>
           <input style={styles.formInput} placeholder="Vorname und Nachname" value={booking.name} onChange={(e) => update("name", e.target.value)} required />
@@ -954,7 +982,7 @@ function Appointments({ go }) {
   );
 }
 
-function Profile({ go }) {
+function Profile({ go, openProject }) {
   const projects = getStoredProjects();
 
   return (
@@ -979,14 +1007,14 @@ function Profile({ go }) {
         )}
 
         {projects.map((project) => (
-          <div key={project.id} style={styles.offerCard}>
+          <button key={project.id} style={{ ...styles.offerCard, width: "100%", textAlign: "left" }} onClick={() => openProject(project)}>
             <div>
               <b>{project.title}</b>
               <p style={styles.smallMuted}>{project.subtitle}</p>
               <span style={styles.badge}>{project.type}</span>
             </div>
             <ChevronRight />
-          </div>
+          </button>
         ))}
       </main>
       <BottomNav active="profile" go={go} />
@@ -1024,17 +1052,36 @@ function SmartHome({ go }) {
 
 export default function App() {
   const [screen, setScreen] = useState("welcome");
+  const [selectedProject, setSelectedProject] = useState(null);
 
-  if (screen === "welcome") return <div style={styles.app}><Welcome go={setScreen} /></div>;
-  if (screen === "home") return <div style={styles.app}><Dashboard go={setScreen} /></div>;
-  if (screen === "products") return <div style={styles.app}><Products go={setScreen} /></div>;
-  if (screen === "config") return <div style={styles.app}><Configurator go={setScreen} /></div>;
-  if (screen === "offers") return <div style={styles.app}><Offers go={setScreen} /></div>;
-  if (screen === "appointments") return <div style={styles.app}><Appointments go={setScreen} /></div>;
-  if (screen === "profile") return <div style={styles.app}><Profile go={setScreen} /></div>;
+  function go(screenName) {
+    setScreen(screenName);
+    if (screenName === "config" || screenName === "appointments") {
+      return;
+    }
+    setSelectedProject(null);
+  }
 
-  return <div style={styles.app}><Dashboard go={setScreen} /></div>;
+  function openProject(project) {
+    setSelectedProject(project);
+    if (project.type === "Termin") {
+      setScreen("appointments");
+    } else {
+      setScreen("config");
+    }
+  }
+
+  if (screen === "welcome") return <div style={styles.app}><Welcome go={go} /></div>;
+  if (screen === "home") return <div style={styles.app}><Dashboard go={go} openProject={openProject} /></div>;
+  if (screen === "products") return <div style={styles.app}><Products go={go} /></div>;
+  if (screen === "config") return <div style={styles.app}><Configurator go={go} selectedProject={selectedProject} /></div>;
+  if (screen === "offers") return <div style={styles.app}><Offers go={go} /></div>;
+  if (screen === "appointments") return <div style={styles.app}><Appointments go={go} selectedProject={selectedProject} /></div>;
+  if (screen === "profile") return <div style={styles.app}><Profile go={go} openProject={openProject} /></div>;
+
+  return <div style={styles.app}><Dashboard go={go} openProject={openProject} /></div>;
 }
+
 
 const styles = {
   app: { minHeight: "100vh", background: "#e9e5dc", display: "flex", justifyContent: "center", alignItems: "center", padding: 24, fontFamily: "Inter, Arial, sans-serif" },
