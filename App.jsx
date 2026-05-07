@@ -363,29 +363,6 @@ function Configurator({ go }) {
     }
   }
 
-    if (type === "width") {
-      const widthPx = simulated * 5.4;
-      setWindowDistance(widthPx);
-
-      const widthCm = Math.round((widthPx / simulated) * 21);
-      setMeasuredWidth(widthCm);
-      setW(widthCm);
-
-      setMeasureStep("height");
-      return;
-    }
-
-    if (type === "height") {
-      const heightPx = simulated * 7.2;
-      setWindowHeightDistance(heightPx);
-
-      const heightCm = Math.round((heightPx / simulated) * 21);
-      setMeasuredHeight(heightCm);
-      setH(heightCm);
-
-      setMeasureStep("done");
-    }
-  }
 
   function selectProduct(productId) {
     const selected = products.find((p) => p.id === productId) || products[0];
