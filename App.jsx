@@ -369,28 +369,89 @@ ${form.message}`
 }
 
 function Appointments({ go }) {
+  const [booking, setBooking] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    type: "Ausmessung vor Ort",
+    date: "",
+    time: "",
+    address: "",
+    note: ""
+  });
+
+  function update(field, value) {
+    setBooking({ ...booking, [field]: value });
+  }
+
+  function submitBooking(e) {
+    e.preventDefault();
+
+    const subject = encodeURIComponent("Neue Terminanfrage über Vindonissa Home");
+    const body = encodeURIComponent(
+      `Neue Terminanfrage
+
+` +
+      `Name: ${booking.name}
+` +
+      `E-Mail: ${booking.email}
+` +
+      `Telefon: ${booking.phone}
+` +
+      `Adresse: ${booking.address}
+
+` +
+      `Terminart: ${booking.type}
+` +
+      `Wunschdatum: ${booking.date}
+` +
+      `Wunschzeit: ${booking.time}
+
+` +
+      `Notiz:
+${booking.note}`
+    );
+
+    window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
+  }
+
   return (
     <Phone>
       <Header title="Termine" go={go} />
       <main style={styles.page}>
-        <h1 style={styles.h1}>Montage-Termine</h1>
+        <h1 style={styles.h1}>Termin buchen</h1>
+        <p style={styles.smallMuted}>Buchen Sie eine Ausmessung, Beratung oder Montageanfrage.</p>
+
+        <form onSubmit={submitBooking} style={styles.form}>
+          <input style={styles.formInput} placeholder="Vorname und Nachname" value={booking.name} onChange={(e) => update("name", e.target.value)} required />
+          <input style={styles.formInput} placeholder="E-Mail-Adresse" type="email" value={booking.email} onChange={(e) => update("email", e.target.value)} required />
+          <input style={styles.formInput} placeholder="Telefonnummer" value={booking.phone} onChange={(e) => update("phone", e.target.value)} />
+
+          <select style={styles.formInput} value={booking.type} onChange={(e) => update("type", e.target.value)}>
+            <option>Ausmessung vor Ort</option>
+            <option>Beratung</option>
+            <option>Montage</option>
+            <option>Service / Reparatur</option>
+          </select>
+
+          <div style={styles.twoCols}>
+            <input style={styles.formInput} type="date" value={booking.date} onChange={(e) => update("date", e.target.value)} />
+            <input style={styles.formInput} type="time" value={booking.time} onChange={(e) => update("time", e.target.value)} />
+          </div>
+
+          <input style={styles.formInput} placeholder="Adresse / PLZ / Ort" value={booking.address} onChange={(e) => update("address", e.target.value)} />
+          <textarea style={{ ...styles.formInput, minHeight: 90, resize: "none" }} placeholder="Notiz / Besonderheiten" value={booking.note} onChange={(e) => update("note", e.target.value)} />
+
+          <button type="submit" style={styles.fullGold}>Terminanfrage senden</button>
+        </form>
+
         <div style={styles.appointmentCard}>
           <CalendarDays color="#a98745" />
           <div>
-            <b>Ausmessung vor Ort</b>
+            <b>Nächster geplanter Termin</b>
             <p style={styles.smallMuted}>Freitag, 14:30 Uhr · Brugg AG</p>
           </div>
         </div>
-
-        <div style={styles.appointmentCard}>
-          <Clock color="#a98745" />
-          <div>
-            <b>Montage reservieren</b>
-            <p style={styles.smallMuted}>Wählen Sie einen passenden Zeitraum.</p>
-          </div>
-        </div>
-
-        <button style={styles.fullGold}>Termin buchen</button>
       </main>
       <BottomNav active="appointments" go={go} />
     </Phone>
