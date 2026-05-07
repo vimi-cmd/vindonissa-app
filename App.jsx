@@ -484,13 +484,29 @@ function Configurator({ go }) {
 
         <h4>Kamera-Messung optional</h4>
         <div style={styles.measureBox}>
-          <b>Ungefähre Breite mit A4-Blatt messen</b>
-          <ol style={styles.measureSteps}>
-            <li>A4-Blatt hochkant direkt an das Fenster halten.</li>
-            <li>Foto möglichst gerade von vorne aufnehmen.</li>
-            <li>Im Foto die kurze A4-Seite gedanklich messen: 21 cm.</li>
-            <li>Trage ein: Pixel/Skalenwert A4 und Pixel/Skalenwert Fensterbreite.</li>
-          </ol>
+          <b>Fenster ungefähr messen</b>
+
+          <div style={styles.simpleGuide}>
+            <div style={styles.guideStep}>
+              <span style={{ width: 26, height: 26, borderRadius: 999, background: "#d3b56f", color: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, flexShrink: 0 }}>1</span>
+              <p>Halte ein normales A4-Blatt direkt an das Fenster oder die Tür.</p>
+            </div>
+
+            <div style={styles.guideStep}>
+              <span style={{ width: 26, height: 26, borderRadius: 999, background: "#d3b56f", color: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, flexShrink: 0 }}>2</span>
+              <p>Mache ein Foto möglichst gerade von vorne.</p>
+            </div>
+
+            <div style={styles.guideStep}>
+              <span style={{ width: 26, height: 26, borderRadius: 999, background: "#d3b56f", color: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, flexShrink: 0 }}>3</span>
+              <p>Lade das Foto hoch und vergleiche Fenster und A4-Blatt.</p>
+            </div>
+
+            <div style={styles.guideStep}>
+              <span style={{ width: 26, height: 26, borderRadius: 999, background: "#d3b56f", color: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, flexShrink: 0 }}>4</span>
+              <p>Die App schätzt daraus ungefähr die Breite.</p>
+            </div>
+          </div>
 
           <input
             type="file"
@@ -506,11 +522,11 @@ function Configurator({ go }) {
             </div>
           )}
 
-          <label style={styles.inputRow}>A4 kurze Seite
+          <label style={styles.inputRow}>A4-Blatt
             <input style={styles.input} value={a4Pixels} onChange={(e) => setA4Pixels(e.target.value)} /> px
           </label>
 
-          <label style={styles.inputRow}>Fensterbreite
+          <label style={styles.inputRow}>Fenster / Tür
             <input style={styles.input} value={windowPixels} onChange={(e) => setWindowPixels(e.target.value)} /> px
           </label>
 
@@ -518,7 +534,7 @@ function Configurator({ go }) {
 
           {measuredWidth && (
             <div style={styles.noticeBox}>
-              Geschätzte Breite: ca. {measuredWidth} cm. Bitte vor Bestellung prüfen.
+              Geschätzte Breite: ca. {measuredWidth} cm
             </div>
           )}
         </div>
@@ -1004,5 +1020,7 @@ const styles = {
   measureBox: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 14, marginBottom: 14 },
   measureSteps: { paddingLeft: 18, color: "#555", fontSize: 12, lineHeight: 1.55, marginTop: 8 },
   measurePreview: { height: 150, borderRadius: 14, overflow: "hidden", background: "#eee", margin: "10px 0" },
+  simpleGuide: { display: "grid", gap: 10, marginTop: 12, marginBottom: 12 },
+  guideStep: { display: "flex", alignItems: "flex-start", gap: 10, background: "#faf7ef", borderRadius: 14, padding: 12 },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
