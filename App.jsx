@@ -277,32 +277,91 @@ function ARPreview({ go }) {
 }
 
 function Offers({ go }) {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    product: "Drehrahmen",
+    width: "",
+    height: "",
+    message: ""
+  });
+
+  function update(field, value) {
+    setForm({ ...form, [field]: value });
+  }
+
+  function submitOffer(e) {
+    e.preventDefault();
+
+    const subject = encodeURIComponent("Neue Offertenanfrage über Vindonissa Home");
+    const body = encodeURIComponent(
+      `Neue Offertenanfrage
+
+` +
+      `Name: ${form.name}
+` +
+      `E-Mail: ${form.email}
+` +
+      `Telefon: ${form.phone}
+` +
+      `Adresse: ${form.address}
+
+` +
+      `Produkt: ${form.product}
+` +
+      `Breite: ${form.width} mm
+` +
+      `Höhe: ${form.height} mm
+
+` +
+      `Nachricht:
+${form.message}`
+    );
+
+    window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
+  }
+
   return (
     <Phone>
-      <Header title="Offerten" go={go} />
+      <Header title="Offerte anfragen" go={go} />
       <main style={styles.page}>
-        <h1 style={styles.h1}>Meine Offerten</h1>
-        <div style={styles.offerCard}>
-          <div>
-            <b>Terrassentür Wohnzimmer</b>
-            <p style={styles.smallMuted}>Drehrahmen · Anthrazitgrau</p>
-            <span style={styles.badge}>In Bearbeitung</span>
+        <h1 style={styles.h1}>Neue Offerte</h1>
+        <p style={styles.smallMuted}>Senden Sie uns Ihre Angaben für eine unverbindliche Offerte.</p>
+
+        <form onSubmit={submitOffer} style={styles.form}>
+          <input style={styles.formInput} placeholder="Vorname und Nachname" value={form.name} onChange={(e) => update("name", e.target.value)} required />
+          <input style={styles.formInput} placeholder="E-Mail-Adresse" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required />
+          <input style={styles.formInput} placeholder="Telefonnummer" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+          <input style={styles.formInput} placeholder="Adresse / PLZ / Ort" value={form.address} onChange={(e) => update("address", e.target.value)} />
+
+          <select style={styles.formInput} value={form.product} onChange={(e) => update("product", e.target.value)}>
+            <option>Spannrahmen</option>
+            <option>Drehrahmen</option>
+            <option>Schiebetür</option>
+            <option>Plissee</option>
+            <option>Rollo</option>
+            <option>Lichtschachtabdeckung</option>
+          </select>
+
+          <div style={styles.twoCols}>
+            <input style={styles.formInput} placeholder="Breite mm" inputMode="numeric" value={form.width} onChange={(e) => update("width", e.target.value)} />
+            <input style={styles.formInput} placeholder="Höhe mm" inputMode="numeric" value={form.height} onChange={(e) => update("height", e.target.value)} />
           </div>
-          <b>CHF 560.–</b>
-        </div>
+
+          <textarea style={{ ...styles.formInput, minHeight: 95, resize: "none" }} placeholder="Nachricht / Besonderheiten" value={form.message} onChange={(e) => update("message", e.target.value)} />
+
+          <button type="submit" style={styles.fullGold}>Offerte per E-Mail senden</button>
+        </form>
 
         <div style={styles.offerCard}>
           <div>
-            <b>Schlafzimmer Fenster</b>
-            <p style={styles.smallMuted}>Spannrahmen · Weiss</p>
-            <span style={styles.badge}>Entwurf</span>
+            <b>Bestehende Offerte</b>
+            <p style={styles.smallMuted}>Terrassentür Wohnzimmer · In Bearbeitung</p>
           </div>
-          <b>CHF 320.–</b>
+          <ChevronRight />
         </div>
-
-        <button style={styles.fullGold} onClick={() => go("config")}>
-          <Plus size={18} /> Neue Offerte anfragen
-        </button>
       </main>
       <BottomNav active="offers" go={go} />
     </Phone>
@@ -464,5 +523,8 @@ const styles = {
   avatar: { width: 70, height: 70, borderRadius: 999, background: gold, color: "#111", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900 },
   profileList: { display: "grid", gap: 10 },
   profileRow: { display: "flex", alignItems: "center", gap: 14, background: "white", border: "1px solid #eee", borderRadius: 16, padding: 14 },
+  form: { display: "grid", gap: 10, marginTop: 16, marginBottom: 18 },
+  formInput: { width: "100%", boxSizing: "border-box", border: "1px solid #e7e1d3", background: "white", borderRadius: 14, padding: "14px 14px", fontSize: 14, outline: "none" },
+  twoCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
