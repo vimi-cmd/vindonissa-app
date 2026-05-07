@@ -1,0 +1,235 @@
+import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Home, Grid2X2, CalendarDays, User, FileText, Box, Camera, RotateCcw, Check,
+  Bell, Menu, ArrowLeft, ChevronRight, ShieldCheck, SlidersHorizontal, ScanLine,
+  DoorOpen, Smartphone
+} from "lucide-react";
+
+const products = [
+  { id: "spannrahmen", label: "Spannrahmen", icon: Grid2X2, price: 320 },
+  { id: "drehrahmen", label: "Drehrahmen", icon: DoorOpen, price: 560 },
+  { id: "schiebetuer", label: "Schiebetür", icon: SlidersHorizontal, price: 890 },
+  { id: "plissee", label: "Plissee", icon: Grid2X2, price: 740 },
+  { id: "rollo", label: "Rollo", icon: Smartphone, price: 430 },
+];
+
+const colors = [
+  { name: "Anthrazitgrau", ral: "RAL 7016", value: "#24282a" },
+  { name: "Weiss", ral: "RAL 9016", value: "#f3f1eb" },
+  { name: "Schwarz", ral: "RAL 9005", value: "#0f0f0f" },
+  { name: "Bronze", ral: "Sonderfarbe", value: "#9a856d" },
+];
+
+function PhoneShell({ children, dark = false }) {
+  return (
+    <div className="mx-auto h-[760px] w-[375px] rounded-[3rem] border-[10px] border-neutral-950 bg-neutral-950 shadow-2xl">
+      <div className={`relative h-full overflow-hidden rounded-[2.35rem] ${dark ? "bg-neutral-950 text-white" : "bg-[#fbfaf7] text-neutral-950"}`}>
+        <div className="absolute left-1/2 top-2 z-50 h-7 w-24 -translate-x-1/2 rounded-full bg-black" />
+        <div className="relative z-40 flex h-12 items-end justify-between px-7 pb-2 text-xs font-semibold">
+          <span>9:41</span><span>● ● ●</span>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function LogoMark() {
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative h-16 w-16">
+        <div className="absolute inset-0 rotate-45 rounded-2xl border border-[#c8a85f]" />
+        <ShieldCheck className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-[#c8a85f]" />
+      </div>
+      <div className="text-center tracking-[0.35em]">
+        <div className="text-xl font-serif">VINDONISSA</div>
+        <div className="mt-1 text-xs text-[#c8a85f]">HOME</div>
+      </div>
+    </div>
+  );
+}
+
+function Welcome({ onStart }) {
+  return (
+    <PhoneShell dark>
+      <div className="relative flex h-[708px] flex-col justify-between px-8 pb-8 pt-16">
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute -left-24 top-20 h-80 w-80 rounded-full border border-[#c8a85f]" />
+          <div className="absolute bottom-16 right-[-80px] h-72 w-72 rounded-full border border-[#c8a85f]" />
+          <div className="absolute left-10 top-48 h-80 w-px rotate-[-22deg] bg-[#c8a85f]" />
+        </div>
+        <LogoMark />
+        <div className="relative space-y-7">
+          <div>
+            <h1 className="text-3xl font-semibold leading-tight">Herzlich willkommen bei <span className="text-[#d2b36a]">Vindonissa Home</span></h1>
+            <p className="mt-5 text-sm leading-6 text-neutral-300">Ihr Zuhause. Geschützt. Insektenfrei. Mit Stil.</p>
+          </div>
+          <button onClick={onStart} className="w-full rounded-xl bg-[#d2b36a] py-4 text-sm font-bold text-black shadow-lg">Los geht’s</button>
+          <button onClick={onStart} className="w-full py-1 text-sm font-semibold text-[#d2b36a]">Anmelden</button>
+        </div>
+      </div>
+    </PhoneShell>
+  );
+}
+
+function Header({ title, back, onBack }) {
+  return (
+    <div className="flex items-center justify-between px-6 pb-4 pt-2">
+      {back ? <button onClick={onBack}><ArrowLeft className="h-5 w-5" /></button> : <Menu className="h-5 w-5" />}
+      <div className="font-semibold">{title}</div>
+      {back ? <ScanLine className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+    </div>
+  );
+}
+
+function Dashboard({ setScreen }) {
+  const quick = [
+    ["Produkte konfigurieren", Grid2X2, "config"],
+    ["AR-Vorschau", ScanLine, "ar"],
+    ["Montage-Termin buchen", CalendarDays, "appointments"],
+    ["Smart-Home Steuerung", Smartphone, "smart"],
+    ["Meine Offerten", FileText, "offers"],
+    ["Kundenportal", User, "portal"],
+  ];
+  return (
+    <PhoneShell>
+      <Header title="" />
+      <main className="px-6 pb-24">
+        <p className="text-sm text-neutral-500">Guten Morgen</p>
+        <h1 className="text-2xl font-bold">Willkommen zurück!</h1>
+        <div className="mt-5 overflow-hidden rounded-2xl bg-neutral-900 text-white shadow-lg">
+          <div className="h-36 bg-gradient-to-br from-neutral-800 via-neutral-700 to-[#d2b36a]/50 p-5">
+            <h2 className="max-w-[200px] text-xl font-semibold leading-snug">Insektenfrei geniessen, jeden Tag.</h2>
+            <button onClick={() => setScreen("offers")} className="mt-6 rounded-xl bg-[#d2b36a] px-4 py-3 text-xs font-bold text-black">Offerte anfragen →</button>
+          </div>
+        </div>
+        <h3 className="mt-7 font-bold">Schnellzugriff</h3>
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          {quick.map(([label, Icon, route]) => (
+            <button key={label} onClick={() => setScreen(route)} className="rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-neutral-100 transition hover:-translate-y-0.5 hover:shadow-md">
+              <Icon className="mb-4 h-5 w-5 text-[#b9964f]" />
+              <span className="text-[11px] font-semibold leading-tight">{label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-7 flex items-center justify-between">
+          <h3 className="font-bold">Meine Projekte</h3><span className="text-xs text-[#a98745]">Alle anzeigen</span>
+        </div>
+        <button onClick={() => setScreen("config")} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-neutral-100">
+          <div className="h-16 w-20 rounded-xl bg-gradient-to-br from-neutral-300 to-neutral-700" />
+          <div className="flex-1"><div className="font-semibold">Terrassentür Wohnzimmer</div><div className="text-xs text-neutral-500">Plissee Schiebetür</div><span className="mt-2 inline-block rounded-full bg-[#efe3c5] px-3 py-1 text-[11px] font-bold">Angebot erstellt</span></div>
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </main>
+      <BottomNav screen="home" setScreen={setScreen} />
+    </PhoneShell>
+  );
+}
+
+function Configurator({ setScreen }) {
+  const [product, setProduct] = useState(products[1]);
+  const [color, setColor] = useState(colors[0]);
+  const [width, setWidth] = useState(1200);
+  const [height, setHeight] = useState(2400);
+  const price = useMemo(() => Math.round(product.price + (width * height) / 14000), [product, width, height]);
+
+  return (
+    <PhoneShell>
+      <Header title="Produkt konfigurieren" back onBack={() => setScreen("home")} />
+      <main className="px-4 pb-28">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {products.map((p) => {
+            const Icon = p.icon;
+            return (
+              <button key={p.id} onClick={() => setProduct(p)} className={`min-w-20 rounded-xl p-3 text-center ring-1 ${product.id === p.id ? "bg-white ring-[#c8a85f]" : "bg-white/70 ring-neutral-100"}`}>
+                <Icon className="mx-auto h-5 w-5 text-[#a98745]" /><span className="mt-2 block text-[10px] font-semibold">{p.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-7 flex justify-center">
+          <div className="relative h-[220px] w-44 rounded-lg border-[10px] border-neutral-800 bg-neutral-100 shadow-2xl">
+            <div className="absolute right-[-58px] top-5 h-52 w-32 rounded-r-lg border-[10px] border-neutral-800 bg-neutral-200/70 shadow-xl" />
+            <div className="absolute inset-2 bg-[linear-gradient(90deg,rgba(0,0,0,.05)_1px,transparent_1px),linear-gradient(rgba(0,0,0,.05)_1px,transparent_1px)] bg-[size:8px_8px]" />
+          </div>
+        </div>
+        <section className="mt-6 space-y-5">
+          <div>
+            <h4 className="text-sm font-bold">Farbe Rahmen</h4>
+            <div className="mt-3 flex items-center gap-3">
+              {colors.map((c) => <button key={c.name} onClick={() => setColor(c)} className={`h-8 w-8 rounded-full ring-2 ring-offset-2 ${color.name === c.name ? "ring-[#c8a85f]" : "ring-transparent"}`} style={{ background: c.value }} />)}
+              <div className="ml-auto text-right text-xs"><b>{color.name}</b><br /><span className="text-neutral-500">{color.ral}</span></div>
+            </div>
+          </div>
+          <Option title="Gewebe" main="Transpatec" sub="Optimale Durchsicht" />
+          <div><h4 className="text-sm font-bold">Masse</h4><NumberRow label="Breite" value={width} setValue={setWidth} /><NumberRow label="Höhe" value={height} setValue={setHeight} /></div>
+        </section>
+      </main>
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-neutral-950 px-5 py-5 text-white">
+        <div><div className="text-[11px] text-neutral-400">Preis inkl. MwSt.</div><div className="text-xl font-bold">CHF {price}.00</div></div>
+        <button onClick={() => setScreen("ar")} className="rounded-xl bg-[#d2b36a] px-6 py-4 text-xs font-bold text-black">Speichern & weiter</button>
+      </div>
+    </PhoneShell>
+  );
+}
+
+function Option({ title, main, sub }) {
+  return <div className="flex items-center rounded-2xl bg-white p-3 ring-1 ring-neutral-100"><div className="h-10 w-10 rounded-full bg-neutral-200" /><div className="ml-3 flex-1"><div className="text-xs text-neutral-500">{title}</div><b>{main}</b><div className="text-xs text-[#a98745]">{sub}</div></div><ChevronRight className="h-5 w-5" /></div>;
+}
+
+function NumberRow({ label, value, setValue }) {
+  return <div className="mt-2 flex items-center gap-3 rounded-xl bg-white p-3 ring-1 ring-neutral-100"><span className="w-16 text-sm text-neutral-500">{label}</span><input className="flex-1 bg-transparent text-right font-semibold outline-none" value={value} onChange={(e) => setValue(Number(e.target.value.replace(/\D/g, "")) || 0)} /><span className="text-sm text-neutral-500">mm</span></div>;
+}
+
+function ARPreview({ setScreen }) {
+  return (
+    <PhoneShell>
+      <Header title="AR-Vorschau" back onBack={() => setScreen("config")} />
+      <main className="relative h-[656px] bg-gradient-to-b from-[#d8c6aa] via-[#ede7db] to-[#9aa68e]">
+        <div className="absolute left-7 right-7 top-16 h-[410px] rounded-t-2xl border-[14px] border-neutral-800 bg-white/40 shadow-2xl">
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.08)_1px,transparent_1px),linear-gradient(rgba(0,0,0,.08)_1px,transparent_1px)] bg-[size:7px_7px]" />
+          <div className="absolute left-1/2 top-0 h-full w-[10px] -translate-x-1/2 bg-neutral-800" />
+          <div className="absolute inset-x-[-22px] bottom-[-80px] h-24 rounded-b-3xl bg-neutral-200" />
+        </div>
+        <div className="absolute right-4 top-48 rounded-2xl bg-white p-3 shadow-lg"><Box className="mx-auto h-5 w-5" /><div className="text-[10px]">3D</div><div className="my-3 h-px bg-neutral-200" /><ScanLine className="mx-auto h-5 w-5" /><div className="text-[10px]">Licht</div></div>
+        <div className="absolute bottom-28 left-0 right-0 flex justify-center gap-8 text-white"><Action icon={Camera} label="Foto" /><button className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#c8a85f] shadow-xl"><Check className="h-8 w-8" /></button><Action icon={RotateCcw} label="Reset" /></div>
+        <div className="absolute bottom-0 left-4 right-4 rounded-t-3xl bg-white p-4 shadow-2xl"><div className="flex items-center gap-3"><div className="h-14 w-14 rounded-xl bg-neutral-200" /><div className="flex-1"><b>Drehrahmen</b><div className="text-xs text-neutral-500">1200 × 2400 mm<br />Anthrazitgrau · Transpatec</div></div><ChevronRight /></div></div>
+      </main>
+    </PhoneShell>
+  );
+}
+
+function Action({ icon: Icon, label }) {
+  return <div className="text-center"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-neutral-900"><Icon /></div><div className="mt-2 text-xs font-semibold">{label}</div></div>;
+}
+
+function SimplePage({ title, setScreen }) {
+  return <PhoneShell><Header title={title} back onBack={() => setScreen("home")} /><main className="px-6"><div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-neutral-100"><h1 className="text-2xl font-bold">{title}</h1><p className="mt-3 text-sm leading-6 text-neutral-600">Dieser Bereich ist als nächstes ausbaubar: Formulare, Login, Status der Offerten, Terminverwaltung, Smart-Home-Geräte und Benachrichtigungen.</p><button className="mt-6 rounded-xl bg-[#d2b36a] px-5 py-3 text-sm font-bold">Weiter</button></div></main></PhoneShell>;
+}
+
+function BottomNav({ screen, setScreen }) {
+  const items = [["Home", Home, "home"], ["Produkte", Grid2X2, "config"], ["Anfragen", FileText, "offers"], ["Termine", CalendarDays, "appointments"], ["Profil", User, "portal"]];
+  return <div className="absolute bottom-0 left-0 right-0 grid grid-cols-5 border-t border-neutral-200 bg-white px-2 py-3">{items.map(([label, Icon, id]) => <button key={label} onClick={() => setScreen(id)} className={`text-center text-[10px] ${screen === id ? "text-[#a98745]" : "text-neutral-500"}`}><Icon className="mx-auto mb-1 h-5 w-5" />{label}</button>)}</div>;
+}
+
+export default function App() {
+  const [screen, setScreen] = useState("welcome");
+  return (
+    <div className="min-h-screen bg-[#efede8] p-6 font-sans text-neutral-950">
+      <div className="mx-auto mb-6 max-w-5xl text-center">
+        <h1 className="text-3xl font-bold">Vindonissa Home App-Prototyp</h1>
+        <p className="mt-2 text-neutral-600">Klickbare erste Version für Offerten, Produktkonfiguration, AR-Vorschau, Termine, Smart-Home und Kundenportal.</p>
+      </div>
+      <AnimatePresence mode="wait">
+        <motion.div key={screen} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.22 }}>
+          {screen === "welcome" && <Welcome onStart={() => setScreen("home")} />}
+          {screen === "home" && <Dashboard setScreen={setScreen} />}
+          {screen === "config" && <Configurator setScreen={setScreen} />}
+          {screen === "ar" && <ARPreview setScreen={setScreen} />}
+          {["offers", "appointments", "portal", "smart"].includes(screen) && <SimplePage title={{ offers: "Meine Offerten", appointments: "Montage-Termine", portal: "Kundenportal", smart: "Smart-Home Steuerung" }[screen]} setScreen={setScreen} />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
