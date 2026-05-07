@@ -289,9 +289,8 @@ function Configurator({ go }) {
   const [showReview, setShowReview] = useState(false);
   const [measureImage, setMeasureImage] = useState(null);
   const [measureStep, setMeasureStep] = useState("a4");
+  const [tapPoints, setTapPoints] = useState([]);
   const [a4Distance, setA4Distance] = useState(null);
-  const [windowDistance, setWindowDistance] = useState(null);
-  const [windowHeightDistance, setWindowHeightDistance] = useState(null);
   const [measuredWidth, setMeasuredWidth] = useState(null);
   const [measuredHeight, setMeasuredHeight] = useState(null);
 
@@ -308,19 +307,61 @@ function Configurator({ go }) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
     setMeasureImage(URL.createObjectURL(file));
-    setA4Pixels("");
-    setWindowPixels("");
+    setMeasureStep("a4");
+    setTapPoints([]);
+    setA4Distance(null);
     setMeasuredWidth(null);
+    setMeasuredHeight(null);
   }
 
-  function simulateMeasure(type) {
-    const simulated = Math.floor(Math.random() * 120) + 80;
+  function distance(p1, p2) {
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
 
-    if (type === "a4") {
-      setA4Distance(simulated);
+  function handleMeasureTap(event) {
+    if (!measureImage || measureStep === "done") return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const point = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
+
+    const nextPoints = [...tapPoints, point];
+    setTapPoints(nextPoints);
+
+    if (nextPoints.length < 2) return;
+
+    const d = distance(nextPoints[0], nextPoints[1]);
+
+    if (measureStep === "a4") {
+      setA4Distance(d);
+      setTapPoints([]);
       setMeasureStep("width");
       return;
     }
+
+    if (measureStep === "width") {
+      if (!a4Distance) return;
+      const widthCm = Math.round((d / a4Distance) * 21);
+      setMeasuredWidth(widthCm);
+      setW(widthCm);
+      setTapPoints([]);
+      setMeasureStep("height");
+      return;
+    }
+
+    if (measureStep === "height") {
+      if (!a4Distance) return;
+      const heightCm = Math.round((d / a4Distance) * 21);
+      setMeasuredHeight(heightCm);
+      setH(heightCm);
+      setTapPoints([]);
+      setMeasureStep("done");
+    }
+  }
 
     if (type === "width") {
       const widthPx = simulated * 5.4;
@@ -538,46 +579,40 @@ function Configurator({ go }) {
           />
 
           {measureImage && (
-            <div style={styles.measurePreview}>
+            <div style={styles.measurePreview} onClick={handleMeasureTap}>
               <img src={measureImage} alt="Messfoto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              {tapPoints.map((point, index) => (
+                <span
+                  key={index}
+                  style={{
+                    ...styles.tapMarker,
+                    left: point.x - 9,
+                    top: point.y - 9
+                  }}
+                >
+                  {index + 1}
+                </span>
+              ))}
             </div>
           )}
 
           <div style={styles.tapGuide}>
             {measureStep === "a4" && (
-              <>
-                <div style={styles.noticeBox}>
-                  Tippe jetzt auf die linke und rechte Seite des A4-Blatts.
-                </div>
-
-                <button style={styles.fullGold} onClick={() => simulateMeasure("a4")}>
-                  A4-Blatt markieren
-                </button>
-              </>
+              <div style={styles.noticeBox}>
+                Tippe im Foto zuerst links und rechts auf das A4-Blatt. Punkt {tapPoints.length + 1} von 2.
+              </div>
             )}
 
             {measureStep === "width" && (
-              <>
-                <div style={styles.noticeBox}>
-                  Super. Markiere jetzt die linke und rechte Seite des Fensters.
-                </div>
-
-                <button style={styles.fullGold} onClick={() => simulateMeasure("width")}>
-                  Fensterbreite markieren
-                </button>
-              </>
+              <div style={styles.noticeBox}>
+                Jetzt links und rechts auf das Fenster oder die Tür tippen. Punkt {tapPoints.length + 1} von 2.
+              </div>
             )}
 
             {measureStep === "height" && (
-              <>
-                <div style={styles.noticeBox}>
-                  Jetzt noch oben und unten beim Fenster markieren.
-                </div>
-
-                <button style={styles.fullGold} onClick={() => simulateMeasure("height")}>
-                  Fensterhöhe markieren
-                </button>
-              </>
+              <div style={styles.noticeBox}>
+                Jetzt oben und unten auf das Fenster oder die Tür tippen. Punkt {tapPoints.length + 1} von 2.
+              </div>
             )}
 
             {measureStep === "done" && measuredWidth && measuredHeight && (
@@ -591,6 +626,8 @@ function Configurator({ go }) {
                   style={styles.secondaryButton}
                   onClick={() => {
                     setMeasureStep("a4");
+                    setTapPoints([]);
+                    setA4Distance(null);
                     setMeasuredWidth(null);
                     setMeasuredHeight(null);
                   }}
@@ -1082,10 +1119,11 @@ const styles = {
   reviewItem: { background: "white", border: "1px solid #eee", borderRadius: 16, padding: 14, marginBottom: 10 },
   measureBox: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 14, marginBottom: 14 },
   measureSteps: { paddingLeft: 18, color: "#555", fontSize: 12, lineHeight: 1.55, marginTop: 8 },
-  measurePreview: { height: 150, borderRadius: 14, overflow: "hidden", background: "#eee", margin: "10px 0" },
+  measurePreview: { height: 180, borderRadius: 14, overflow: "hidden", background: "#eee", margin: "10px 0", position: "relative", cursor: "crosshair" },
   simpleGuide: { display: "grid", gap: 10, marginTop: 12, marginBottom: 12 },
   guideStep: { display: "flex", alignItems: "flex-start", gap: 10, background: "#faf7ef", borderRadius: 14, padding: 12 },
   tapGuide: { marginTop: 10 },
   measureResult: { background: "#111", color: "white", borderRadius: 18, padding: 18, textAlign: "center", fontSize: 20, marginBottom: 12 },
+  tapMarker: { position: "absolute", width: 18, height: 18, borderRadius: 999, background: "#d3b56f", color: "#111", border: "2px solid white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, boxShadow: "0 2px 6px rgba(0,0,0,.25)" },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
