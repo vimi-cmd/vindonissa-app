@@ -269,7 +269,21 @@ function Configurator({ go }) {
   const [room, setRoom] = useState("Wohnzimmer");
   const [meshType, setMeshType] = useState(products[0].meshOptions[0]);
   const [extraColor, setExtraColor] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [quoteItems, setQuoteItems] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("vindonissaQuoteItems") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const [customer, setCustomer] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    note: ""
+  });
 
   function selectProduct(p) {
     setProduct(p);
@@ -306,31 +320,110 @@ function Configurator({ go }) {
     return { base, meshAddon, specialColor, total };
   }, [product, w, h, meshType, extraColor, area, perimeter]);
 
-  function saveProject() {
-    const project = {
+  const quoteTotal = quoteItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+
+  function saveQuoteItems(nextItems) {
+    setQuoteItems(nextItems);
+    localStorage.setItem("vindonissaQuoteItems", JSON.stringify(nextItems));
+  }
+
+  function addToQuote() {
+    const item = {
       id: Date.now(),
       room,
       product: product.label,
-      color: color.name,
-      ral: color.ral,
       width: w,
       height: h,
+      color: product.id === "lichtschacht" ? "Chromstahl" : color.name,
+      ral: product.id === "lichtschacht" ? "" : color.ral,
       meshType,
-      price: priceData.total,
-      status: "Entwurf"
+      extraColor,
+      base: priceData.base,
+      meshAddon: priceData.meshAddon,
+      specialColor: priceData.specialColor,
+      price: priceData.total
     };
 
-    const existing = JSON.parse(localStorage.getItem("vindonissaProjects") || "[]");
-    localStorage.setItem("vindonissaProjects", JSON.stringify([project, ...existing]));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
+    saveQuoteItems([...quoteItems, item]);
+
+    setRoom("");
+    setW(120);
+    setH(140);
+  }
+
+  function removeItem(id) {
+    saveQuoteItems(quoteItems.filter((item) => item.id !== id));
+  }
+
+  function clearQuote() {
+    saveQuoteItems([]);
+  }
+
+  function updateCustomer(field, value) {
+    setCustomer({ ...customer, [field]: value });
+  }
+
+  function sendQuoteRequest() {
+    if (quoteItems.length === 0) {
+      alert("Bitte zuerst mindestens ein Produkt zur Offerte hinzufügen.");
+      return;
+    }
+
+    const itemsText = quoteItems.map((item, index) => {
+      return (
+        `${index + 1}. ${item.product}
+` +
+        `Raum: ${item.room || "-"}
+` +
+        `Masse: ${item.width} × ${item.height} cm
+` +
+        `Gewebe: ${item.meshType}
+` +
+        `Farbe: ${item.color} ${item.ral ? "(" + item.ral + ")" : ""}
+` +
+        `Sonderfarbe: ${item.extraColor ? "Ja" : "Nein"}
+` +
+        `Preis: CHF ${item.price}.00
+`
+      );
+    }).join("
+");
+
+    const subject = encodeURIComponent("Neue Offertenanfrage über Vindonissa Home");
+    const body = encodeURIComponent(
+      `Neue Offertenanfrage
+
+` +
+      `Kundendaten
+` +
+      `Name: ${customer.name}
+` +
+      `E-Mail: ${customer.email}
+` +
+      `Telefon: ${customer.phone}
+` +
+      `Adresse: ${customer.address}
+
+` +
+      `Produkte
+
+${itemsText}
+` +
+      `Gesamtsumme: CHF ${quoteTotal}.00
+
+` +
+      `Nachricht:
+${customer.note}`
+    );
+
+    window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
   }
 
   return (
     <Phone>
-      <Header title="Preisrechner" back go={go} />
+      <Header title="Offerte erstellen" back go={go} />
       <main style={styles.page}>
-        {saved && <div style={styles.successBox}>Projekt wurde gespeichert.</div>}
+        <h3>Produkt hinzufügen</h3>
 
         <input
           style={styles.formInput}
@@ -352,15 +445,6 @@ function Configurator({ go }) {
           })}
         </div>
 
-        <div style={styles.windowWrap}>
-          <div style={{ ...styles.windowFrame, borderColor: product.id === "lichtschacht" ? "#b9b9b9" : color.value }}>
-            <div style={styles.mesh}></div>
-          </div>
-          <div style={{ ...styles.openFrame, borderColor: product.id === "lichtschacht" ? "#b9b9b9" : color.value }}>
-            <div style={styles.mesh}></div>
-          </div>
-        </div>
-
         <h4>Masse in cm</h4>
         <label style={styles.inputRow}>Breite
           <input style={styles.input} value={w} onChange={(e) => setW(Number(e.target.value) || 0)} /> cm
@@ -368,8 +452,6 @@ function Configurator({ go }) {
         <label style={styles.inputRow}>Höhe
           <input style={styles.input} value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> cm
         </label>
-
-        <p style={styles.smallMuted}>Preis wird auf die nächste 10-cm-Stufe gerundet.</p>
 
         {product.id !== "lichtschacht" && (
           <>
@@ -404,17 +486,50 @@ function Configurator({ go }) {
         )}
 
         <div style={styles.priceDetails}>
-          <div><span>Grundpreis</span><b>CHF {priceData.base}.00</b></div>
-          <div><span>Gewebe-Aufpreis</span><b>CHF {priceData.meshAddon}.00</b></div>
-          <div><span>Sonderfarbe</span><b>CHF {priceData.specialColor}.00</b></div>
+          <div><span>Aktueller Produktpreis</span><b>CHF {priceData.total}.00</b></div>
         </div>
 
-        <button style={styles.secondaryButton} onClick={saveProject}>Projekt speichern</button>
+        <button style={styles.fullGold} onClick={addToQuote}>Produkt zur Offerte hinzufügen</button>
+
+        <h3>Offertenliste</h3>
+
+        {quoteItems.length === 0 && (
+          <div style={styles.emptyBox}>Noch keine Produkte hinzugefügt.</div>
+        )}
+
+        {quoteItems.map((item) => (
+          <div key={item.id} style={styles.quoteItem}>
+            <div style={{ flex: 1 }}>
+              <b>{item.product}</b>
+              <p style={styles.smallMuted}>
+                {item.room || "Ohne Raum"} · {item.width} × {item.height} cm<br />
+                {item.meshType} · {item.color}
+              </p>
+              <b>CHF {item.price}.00</b>
+            </div>
+            <button style={styles.removeButton} onClick={() => removeItem(item.id)}>×</button>
+          </div>
+        ))}
+
+        <div style={styles.totalBox}>
+          <span>Gesamtsumme</span>
+          <b>CHF {quoteTotal}.00</b>
+        </div>
+
+        <h3>Kundendaten</h3>
+        <input style={styles.formInput} placeholder="Vorname und Nachname" value={customer.name} onChange={(e) => updateCustomer("name", e.target.value)} />
+        <input style={styles.formInput} placeholder="E-Mail-Adresse" type="email" value={customer.email} onChange={(e) => updateCustomer("email", e.target.value)} />
+        <input style={styles.formInput} placeholder="Telefonnummer" value={customer.phone} onChange={(e) => updateCustomer("phone", e.target.value)} />
+        <input style={styles.formInput} placeholder="Adresse / PLZ / Ort" value={customer.address} onChange={(e) => updateCustomer("address", e.target.value)} />
+        <textarea style={{ ...styles.formInput, minHeight: 90, resize: "none" }} placeholder="Nachricht / Besonderheiten" value={customer.note} onChange={(e) => updateCustomer("note", e.target.value)} />
+
+        <button style={styles.fullGold} onClick={sendQuoteRequest}>Offerte senden</button>
+        <button style={styles.secondaryButton} onClick={clearQuote}>Liste leeren</button>
       </main>
 
       <div style={styles.priceBar}>
-        <div><small>Richtpreis inkl. MwSt. & Montage</small><br /><b>CHF {priceData.total}.00</b></div>
-        <button style={styles.goldSmall} onClick={() => go("offers")}>Offerte</button>
+        <div><small>Offertensumme</small><br /><b>CHF {quoteTotal}.00</b></div>
+        <button style={styles.goldSmall} onClick={sendQuoteRequest}>Senden</button>
       </div>
     </Phone>
   );
@@ -443,90 +558,18 @@ function ARPreview({ go }) {
 }
 
 function Offers({ go }) {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    product: "Drehrahmen",
-    width: "",
-    height: "",
-    message: ""
-  });
-
-  function update(field, value) {
-    setForm({ ...form, [field]: value });
-  }
-
-  function submitOffer(e) {
-    e.preventDefault();
-
-    const subject = encodeURIComponent("Neue Offertenanfrage über Vindonissa Home");
-    const body = encodeURIComponent(
-      `Neue Offertenanfrage
-
-` +
-      `Name: ${form.name}
-` +
-      `E-Mail: ${form.email}
-` +
-      `Telefon: ${form.phone}
-` +
-      `Adresse: ${form.address}
-
-` +
-      `Produkt: ${form.product}
-` +
-      `Breite: ${form.width} mm
-` +
-      `Höhe: ${form.height} mm
-
-` +
-      `Nachricht:
-${form.message}`
-    );
-
-    window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
-  }
-
   return (
     <Phone>
-      <Header title="Offerte anfragen" go={go} />
+      <Header title="Offerten" go={go} />
       <main style={styles.page}>
-        <h1 style={styles.h1}>Neue Offerte</h1>
-        <p style={styles.smallMuted}>Senden Sie uns Ihre Angaben für eine unverbindliche Offerte.</p>
+        <h1 style={styles.h1}>Offerte erstellen</h1>
+        <p style={styles.smallMuted}>Wählen Sie mehrere Produkte aus. Die App zählt alles automatisch zusammen.</p>
 
-        <form onSubmit={submitOffer} style={styles.form}>
-          <input style={styles.formInput} placeholder="Vorname und Nachname" value={form.name} onChange={(e) => update("name", e.target.value)} required />
-          <input style={styles.formInput} placeholder="E-Mail-Adresse" type="email" value={form.email} onChange={(e) => update("email", e.target.value)} required />
-          <input style={styles.formInput} placeholder="Telefonnummer" value={form.phone} onChange={(e) => update("phone", e.target.value)} />
-          <input style={styles.formInput} placeholder="Adresse / PLZ / Ort" value={form.address} onChange={(e) => update("address", e.target.value)} />
-
-          <select style={styles.formInput} value={form.product} onChange={(e) => update("product", e.target.value)}>
-            <option>Spannrahmen</option>
-            <option>Drehrahmen</option>
-            <option>Schiebetür</option>
-            <option>Plissee</option>
-            <option>Rollo</option>
-            <option>Lichtschachtabdeckung</option>
-          </select>
-
-          <div style={styles.twoCols}>
-            <input style={styles.formInput} placeholder="Breite mm" inputMode="numeric" value={form.width} onChange={(e) => update("width", e.target.value)} />
-            <input style={styles.formInput} placeholder="Höhe mm" inputMode="numeric" value={form.height} onChange={(e) => update("height", e.target.value)} />
-          </div>
-
-          <textarea style={{ ...styles.formInput, minHeight: 95, resize: "none" }} placeholder="Nachricht / Besonderheiten" value={form.message} onChange={(e) => update("message", e.target.value)} />
-
-          <button type="submit" style={styles.fullGold}>Offerte per E-Mail senden</button>
-        </form>
-
-        <div style={styles.offerCard}>
-          <div>
-            <b>Bestehende Offerte</b>
-            <p style={styles.smallMuted}>Terrassentür Wohnzimmer · In Bearbeitung</p>
-          </div>
-          <ChevronRight />
+        <div style={styles.simpleCard}>
+          <FileText color="#a98745" />
+          <h3>Mehrere Produkte hinzufügen</h3>
+          <p style={styles.smallMuted}>Fenster, Türen, Rollos, Plissées und Lichtschachtabdeckungen können zusammen in eine Offerte aufgenommen werden.</p>
+          <button style={styles.fullGold} onClick={() => go("config")}>Offerte starten</button>
         </div>
       </main>
       <BottomNav active="offers" go={go} />
@@ -793,5 +836,9 @@ const styles = {
   secondaryButton: { width: "100%", marginTop: 16, background: "#111", color: "white", border: 0, borderRadius: 16, padding: 15, fontWeight: 900 },
   checkRow: { display: "flex", alignItems: "center", gap: 10, background: "white", border: "1px solid #eee", borderRadius: 14, padding: 13, marginTop: 10, fontWeight: 700 },
   priceDetails: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 14, marginTop: 14, display: "grid", gap: 10 },
+  quoteItem: { display: "flex", alignItems: "center", gap: 10, background: "white", border: "1px solid #eee", borderRadius: 16, padding: 14, marginBottom: 10 },
+  removeButton: { width: 34, height: 34, borderRadius: 999, border: 0, background: "#111", color: "white", fontSize: 22, lineHeight: "30px" },
+  totalBox: { display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", color: "white", borderRadius: 18, padding: 16, margin: "14px 0", fontSize: 18 },
+  emptyBox: { background: "white", border: "1px dashed #d8c9a5", borderRadius: 16, padding: 16, color: "#777", textAlign: "center" },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
