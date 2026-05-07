@@ -1,14 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { createRoot } from "react-dom/client";
 import {
   Home, Grid2X2, CalendarDays, User, FileText, Camera,
   RotateCcw, Check, Bell, Menu, ArrowLeft, ChevronRight,
-  ShieldCheck, ScanLine, DoorOpen, Smartphone, SlidersHorizontal
+  ShieldCheck, ScanLine, DoorOpen, Smartphone, SlidersHorizontal,
+  Plus, Settings, Clock, Mail, MapPin, PhoneCall
 } from "lucide-react";
 
 const gold = "#d3b56f";
-const dark = "#111111";
 const cream = "#f7f3ea";
+const dark = "#111111";
 
 const products = [
   { id: "spannrahmen", label: "Spannrahmen", price: 320, icon: Grid2X2 },
@@ -24,15 +24,6 @@ const colors = [
   { name: "Schwarz", ral: "RAL 9005", value: "#050505" },
   { name: "Bronze", ral: "Sonderfarbe", value: "#9a856d" },
 ];
-
-function IconButton({ icon: Icon, label, onClick }) {
-  return (
-    <button onClick={onClick} style={styles.quickCard}>
-      <Icon size={22} color="#a98745" />
-      <span style={styles.quickLabel}>{label}</span>
-    </button>
-  );
-}
 
 function Phone({ children, black = false }) {
   return (
@@ -85,23 +76,33 @@ function Header({ title, back, go }) {
   );
 }
 
-function BottomNav({ go }) {
+function BottomNav({ active, go }) {
   const items = [
-    ["Home", Home, "home"],
-    ["Produkte", Grid2X2, "config"],
-    ["Anfragen", FileText, "offers"],
-    ["Termine", CalendarDays, "appointments"],
-    ["Profil", User, "portal"],
+    ["home", "Home", Home],
+    ["products", "Produkte", Grid2X2],
+    ["offers", "Offerten", FileText],
+    ["appointments", "Termine", CalendarDays],
+    ["profile", "Profil", User],
   ];
+
   return (
     <div style={styles.nav}>
-      {items.map(([label, Icon, page]) => (
-        <button key={label} onClick={() => go(page)} style={styles.navItem}>
-          <Icon size={20} />
-          <span>{label}</span>
+      {items.map(([id, label, Icon]) => (
+        <button key={id} onClick={() => go(id)} style={{ ...styles.navItem, color: active === id ? "#a98745" : "#777" }}>
+          <Icon size={21} strokeWidth={active === id ? 2.8 : 2} />
+          <span style={{ fontWeight: active === id ? 800 : 600 }}>{label}</span>
         </button>
       ))}
     </div>
+  );
+}
+
+function QuickButton({ icon: Icon, label, onClick }) {
+  return (
+    <button onClick={onClick} style={styles.quickCard}>
+      <Icon size={22} color="#a98745" />
+      <span style={styles.quickLabel}>{label}</span>
+    </button>
   );
 }
 
@@ -120,15 +121,19 @@ function Dashboard({ go }) {
 
         <h3>Schnellzugriff</h3>
         <div style={styles.quickGrid}>
-          <IconButton icon={Grid2X2} label="Produkte konfigurieren" onClick={() => go("config")} />
-          <IconButton icon={ScanLine} label="AR-Vorschau" onClick={() => go("ar")} />
-          <IconButton icon={CalendarDays} label="Montage-Termin buchen" onClick={() => go("appointments")} />
-          <IconButton icon={Smartphone} label="Smart-Home Steuerung" onClick={() => go("smart")} />
-          <IconButton icon={FileText} label="Meine Offerten" onClick={() => go("offers")} />
-          <IconButton icon={User} label="Kundenportal" onClick={() => go("portal")} />
+          <QuickButton icon={Grid2X2} label="Produkte konfigurieren" onClick={() => go("products")} />
+          <QuickButton icon={ScanLine} label="AR-Vorschau" onClick={() => go("ar")} />
+          <QuickButton icon={CalendarDays} label="Montage buchen" onClick={() => go("appointments")} />
+          <QuickButton icon={Smartphone} label="Smart-Home" onClick={() => go("smart")} />
+          <QuickButton icon={FileText} label="Meine Offerten" onClick={() => go("offers")} />
+          <QuickButton icon={User} label="Kundenportal" onClick={() => go("profile")} />
         </div>
 
-        <h3>Meine Projekte</h3>
+        <div style={styles.sectionTop}>
+          <h3>Meine Projekte</h3>
+          <button style={styles.textAction} onClick={() => go("products")}>Neu</button>
+        </div>
+
         <button style={styles.project} onClick={() => go("config")}>
           <div style={styles.projectImg}></div>
           <div style={{ flex: 1, textAlign: "left" }}>
@@ -139,7 +144,40 @@ function Dashboard({ go }) {
           <ChevronRight />
         </button>
       </main>
-      <BottomNav go={go} />
+      <BottomNav active="home" go={go} />
+    </Phone>
+  );
+}
+
+function Products({ go }) {
+  return (
+    <Phone>
+      <Header title="Produkte" go={go} />
+      <main style={styles.page}>
+        <h1 style={styles.h1}>Produkt wählen</h1>
+        <p style={styles.smallMuted}>Konfigurieren Sie Ihren Insektenschutz nach Mass.</p>
+
+        <div style={styles.list}>
+          {products.map((p) => {
+            const Icon = p.icon;
+            return (
+              <button key={p.id} onClick={() => go("config")} style={styles.productListItem}>
+                <div style={styles.iconBox}><Icon color="#a98745" /></div>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <b>{p.label}</b>
+                  <p style={styles.smallMuted}>ab CHF {p.price}.00</p>
+                </div>
+                <ChevronRight />
+              </button>
+            );
+          })}
+        </div>
+
+        <button style={styles.fullGold} onClick={() => go("config")}>
+          <Plus size={18} /> Neues Produkt konfigurieren
+        </button>
+      </main>
+      <BottomNav active="products" go={go} />
     </Phone>
   );
 }
@@ -201,10 +239,10 @@ function Configurator({ go }) {
 
         <h4>Masse</h4>
         <label style={styles.inputRow}>Breite
-          <input value={w} onChange={(e) => setW(Number(e.target.value) || 0)} /> mm
+          <input style={styles.input} value={w} onChange={(e) => setW(Number(e.target.value) || 0)} /> mm
         </label>
         <label style={styles.inputRow}>Höhe
-          <input value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> mm
+          <input style={styles.input} value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> mm
         </label>
       </main>
 
@@ -238,36 +276,133 @@ function ARPreview({ go }) {
   );
 }
 
-function SimplePage({ title, go }) {
+function Offers({ go }) {
   return (
     <Phone>
-      <Header title={title} back go={go} />
+      <Header title="Offerten" go={go} />
       <main style={styles.page}>
-        <div style={styles.simpleCard}>
-          <h1>{title}</h1>
-          <p>Dieser Bereich ist vorbereitet und kann als nächstes mit echten Formularen, Kundendaten, Terminen und E-Mail-Versand verbunden werden.</p>
-          <button style={styles.goldSmall}>Weiter</button>
+        <h1 style={styles.h1}>Meine Offerten</h1>
+        <div style={styles.offerCard}>
+          <div>
+            <b>Terrassentür Wohnzimmer</b>
+            <p style={styles.smallMuted}>Drehrahmen · Anthrazitgrau</p>
+            <span style={styles.badge}>In Bearbeitung</span>
+          </div>
+          <b>CHF 560.–</b>
+        </div>
+
+        <div style={styles.offerCard}>
+          <div>
+            <b>Schlafzimmer Fenster</b>
+            <p style={styles.smallMuted}>Spannrahmen · Weiss</p>
+            <span style={styles.badge}>Entwurf</span>
+          </div>
+          <b>CHF 320.–</b>
+        </div>
+
+        <button style={styles.fullGold} onClick={() => go("config")}>
+          <Plus size={18} /> Neue Offerte anfragen
+        </button>
+      </main>
+      <BottomNav active="offers" go={go} />
+    </Phone>
+  );
+}
+
+function Appointments({ go }) {
+  return (
+    <Phone>
+      <Header title="Termine" go={go} />
+      <main style={styles.page}>
+        <h1 style={styles.h1}>Montage-Termine</h1>
+        <div style={styles.appointmentCard}>
+          <CalendarDays color="#a98745" />
+          <div>
+            <b>Ausmessung vor Ort</b>
+            <p style={styles.smallMuted}>Freitag, 14:30 Uhr · Brugg AG</p>
+          </div>
+        </div>
+
+        <div style={styles.appointmentCard}>
+          <Clock color="#a98745" />
+          <div>
+            <b>Montage reservieren</b>
+            <p style={styles.smallMuted}>Wählen Sie einen passenden Zeitraum.</p>
+          </div>
+        </div>
+
+        <button style={styles.fullGold}>Termin buchen</button>
+      </main>
+      <BottomNav active="appointments" go={go} />
+    </Phone>
+  );
+}
+
+function Profile({ go }) {
+  return (
+    <Phone>
+      <Header title="Profil" go={go} />
+      <main style={styles.page}>
+        <div style={styles.profileHead}>
+          <div style={styles.avatar}>V</div>
+          <h1 style={styles.h1}>Vindonissa Kunde</h1>
+          <p style={styles.smallMuted}>Kundenportal</p>
+        </div>
+
+        <div style={styles.profileList}>
+          <ProfileRow icon={Mail} label="E-Mail" value="kunde@email.ch" />
+          <ProfileRow icon={PhoneCall} label="Telefon" value="+41 ..." />
+          <ProfileRow icon={MapPin} label="Adresse" value="Brugg, Schweiz" />
+          <ProfileRow icon={Settings} label="Einstellungen" value="App & Benachrichtigungen" />
         </div>
       </main>
-      <BottomNav go={go} />
+      <BottomNav active="profile" go={go} />
+    </Phone>
+  );
+}
+
+function ProfileRow({ icon: Icon, label, value }) {
+  return (
+    <div style={styles.profileRow}>
+      <Icon color="#a98745" />
+      <div>
+        <b>{label}</b>
+        <p style={styles.smallMuted}>{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function SmartHome({ go }) {
+  return (
+    <Phone>
+      <Header title="Smart-Home" back go={go} />
+      <main style={styles.page}>
+        <h1 style={styles.h1}>Smart-Home Steuerung</h1>
+        <div style={styles.simpleCard}>
+          <Smartphone color="#a98745" />
+          <h3>Automatische Steuerung</h3>
+          <p style={styles.smallMuted}>Hier könnten später motorisierte Rollos, Sensoren und Zeitpläne verbunden werden.</p>
+        </div>
+      </main>
     </Phone>
   );
 }
 
 export default function App() {
   const [screen, setScreen] = useState("welcome");
-  return (
-    <div style={styles.app}>
-      {screen === "welcome" && <Welcome go={setScreen} />}
-      {screen === "home" && <Dashboard go={setScreen} />}
-      {screen === "config" && <Configurator go={setScreen} />}
-      {screen === "ar" && <ARPreview go={setScreen} />}
-      {screen === "offers" && <SimplePage title="Meine Offerten" go={setScreen} />}
-      {screen === "appointments" && <SimplePage title="Montage-Termine" go={setScreen} />}
-      {screen === "portal" && <SimplePage title="Kundenportal" go={setScreen} />}
-      {screen === "smart" && <SimplePage title="Smart-Home Steuerung" go={setScreen} />}
-    </div>
-  );
+
+  if (screen === "welcome") return <div style={styles.app}><Welcome go={setScreen} /></div>;
+  if (screen === "home") return <div style={styles.app}><Dashboard go={setScreen} /></div>;
+  if (screen === "products") return <div style={styles.app}><Products go={setScreen} /></div>;
+  if (screen === "config") return <div style={styles.app}><Configurator go={setScreen} /></div>;
+  if (screen === "ar") return <div style={styles.app}><ARPreview go={setScreen} /></div>;
+  if (screen === "offers") return <div style={styles.app}><Offers go={setScreen} /></div>;
+  if (screen === "appointments") return <div style={styles.app}><Appointments go={setScreen} /></div>;
+  if (screen === "profile") return <div style={styles.app}><Profile go={setScreen} /></div>;
+  if (screen === "smart") return <div style={styles.app}><SmartHome go={setScreen} /></div>;
+
+  return <div style={styles.app}><Dashboard go={setScreen} /></div>;
 }
 
 const styles = {
@@ -284,18 +419,24 @@ const styles = {
   linkButton: { width: "100%", background: "transparent", color: gold, border: 0, padding: 18, fontWeight: 700 },
   header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 22px 15px" },
   page: { padding: "0 22px 90px", height: 620, overflowY: "auto" },
-  smallMuted: { color: "#777", fontSize: 12 },
+  smallMuted: { color: "#777", fontSize: 12, margin: "5px 0" },
   h1: { marginTop: 0, fontSize: 26 },
   hero: { background: "linear-gradient(135deg,#171717,#77705f)", color: "white", borderRadius: 20, padding: 22, height: 145, margin: "18px 0", boxShadow: "0 12px 25px rgba(0,0,0,.12)" },
   heroButton: { background: gold, border: 0, borderRadius: 12, padding: "12px 16px", fontWeight: 800 },
   quickGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 },
   quickCard: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 12, height: 92, textAlign: "left", boxShadow: "0 4px 12px rgba(0,0,0,.05)" },
   quickLabel: { display: "block", marginTop: 14, fontSize: 11, fontWeight: 700 },
+  sectionTop: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 20 },
+  textAction: { background: "transparent", border: 0, color: "#a98745", fontWeight: 800 },
   project: { width: "100%", display: "flex", alignItems: "center", gap: 12, background: "white", border: "1px solid #eee", borderRadius: 18, padding: 12 },
   projectImg: { width: 70, height: 58, borderRadius: 12, background: "linear-gradient(135deg,#ddd,#333)" },
-  badge: { background: "#efe3c5", borderRadius: 999, padding: "6px 10px", fontSize: 11, fontWeight: 800 },
+  badge: { background: "#efe3c5", borderRadius: 999, padding: "6px 10px", fontSize: 11, fontWeight: 800, display: "inline-block" },
   nav: { position: "absolute", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #ddd", display: "grid", gridTemplateColumns: "repeat(5,1fr)", padding: "10px 4px 13px" },
-  navItem: { background: "none", border: 0, fontSize: 10, color: "#666", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 },
+  navItem: { background: "none", border: 0, fontSize: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 },
+  list: { display: "grid", gap: 12, marginTop: 18 },
+  productListItem: { display: "flex", alignItems: "center", gap: 14, background: "white", border: "1px solid #eee", borderRadius: 18, padding: 14 },
+  iconBox: { width: 46, height: 46, borderRadius: 14, background: "#f0e5ca", display: "flex", alignItems: "center", justifyContent: "center" },
+  fullGold: { width: "100%", marginTop: 20, background: gold, border: 0, borderRadius: 16, padding: 16, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 },
   productTabs: { display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8 },
   productTab: { minWidth: 82, background: "white", border: "1px solid #eee", borderRadius: 14, padding: 10, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700 },
   windowWrap: { position: "relative", height: 240, display: "flex", justifyContent: "center", alignItems: "center" },
@@ -307,6 +448,7 @@ const styles = {
   option: { display: "flex", alignItems: "center", gap: 12, background: "white", borderRadius: 18, padding: 14, border: "1px solid #eee" },
   circle: { width: 38, height: 38, borderRadius: 999, background: "#ddd" },
   inputRow: { display: "flex", alignItems: "center", gap: 8, background: "white", border: "1px solid #eee", borderRadius: 14, padding: 13, marginTop: 8 },
+  input: { flex: 1, border: 0, textAlign: "right", background: "transparent", fontWeight: 800, outline: "none" },
   priceBar: { position: "absolute", bottom: 0, left: 0, right: 0, background: "#111", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center", padding: 18 },
   goldSmall: { background: gold, border: 0, borderRadius: 13, padding: "13px 18px", fontWeight: 800 },
   ar: { position: "relative", height: 660, background: "linear-gradient(#d9c7aa,#eee8dc,#9fa98f)" },
@@ -316,5 +458,11 @@ const styles = {
   place: { width: 78, height: 78, borderRadius: 999, background: gold, color: "white", border: "4px solid white" },
   arCard: { position: "absolute", bottom: 0, left: 18, right: 18, background: "white", borderRadius: "24px 24px 0 0", padding: 16, display: "flex", alignItems: "center", gap: 12 },
   productMini: { width: 50, height: 55, borderRadius: 10, background: "#ddd" },
+  offerCard: { background: "white", borderRadius: 18, padding: 16, border: "1px solid #eee", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" },
+  appointmentCard: { background: "white", borderRadius: 18, padding: 16, border: "1px solid #eee", marginBottom: 12, display: "flex", gap: 14, alignItems: "center" },
+  profileHead: { textAlign: "center", background: "white", borderRadius: 24, padding: 22, marginBottom: 15 },
+  avatar: { width: 70, height: 70, borderRadius: 999, background: gold, color: "#111", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900 },
+  profileList: { display: "grid", gap: 10 },
+  profileRow: { display: "flex", alignItems: "center", gap: 14, background: "white", border: "1px solid #eee", borderRadius: 16, padding: 14 },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
