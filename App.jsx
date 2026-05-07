@@ -104,6 +104,30 @@ const colors = [
   { name: "Sonderfarbe", ral: "nach Wunsch", value: "#d3b56f", special: true }
 ];
 
+function getStoredProjects() {
+  try {
+    return JSON.parse(localStorage.getItem("vindonissaProjects") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredProject(project) {
+  const existing = getStoredProjects();
+  localStorage.setItem("vindonissaProjects", JSON.stringify([project, ...existing]));
+}
+
+function formatDateTime() {
+  return new Date().toLocaleString("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+
 function Phone({ children, black = false }) {
   return (
     <div style={styles.phoneOuter}>
@@ -186,6 +210,8 @@ function QuickButton({ icon: Icon, label, onClick }) {
 }
 
 function Dashboard({ go }) {
+  const projects = getStoredProjects();
+
   return (
     <Phone>
       <Header title="" go={go} />
@@ -195,33 +221,37 @@ function Dashboard({ go }) {
 
         <div style={styles.hero}>
           <h2>Insektenfrei geniessen, jeden Tag.</h2>
-          <button style={styles.heroButton} onClick={() => go("offers")}>Offerte anfragen →</button>
+          <button style={styles.heroButton} onClick={() => go("config")}>Offerte anfragen →</button>
         </div>
 
         <h3>Schnellzugriff</h3>
-        <div style={styles.quickGrid}>
+        <div style={styles.quickGridClean}>
           <QuickButton icon={Grid2X2} label="Produkte konfigurieren" onClick={() => go("products")} />
-          <QuickButton icon={ScanLine} label="AR-Vorschau" onClick={() => go("ar")} />
+          <QuickButton icon={FileText} label="Offerte erstellen" onClick={() => go("config")} />
           <QuickButton icon={CalendarDays} label="Montage buchen" onClick={() => go("appointments")} />
-          <QuickButton icon={Smartphone} label="Smart-Home" onClick={() => go("smart")} />
-          <QuickButton icon={FileText} label="Meine Offerten" onClick={() => go("offers")} />
           <QuickButton icon={User} label="Kundenportal" onClick={() => go("profile")} />
         </div>
 
         <div style={styles.sectionTop}>
           <h3>Meine Projekte</h3>
-          <button style={styles.textAction} onClick={() => go("products")}>Neu</button>
+          <button style={styles.textAction} onClick={() => go("config")}>Neu</button>
         </div>
 
-        <button style={styles.project} onClick={() => go("config")}>
-          <div style={styles.projectImg}></div>
-          <div style={{ flex: 1, textAlign: "left" }}>
-            <b>Terrassentür Wohnzimmer</b>
-            <p style={styles.smallMuted}>Plissee Schiebetür</p>
-            <span style={styles.badge}>Angebot erstellt</span>
-          </div>
-          <ChevronRight />
-        </button>
+        {projects.length === 0 && (
+          <div style={styles.emptyBox}>Noch keine gespeicherten Offerten oder Termine.</div>
+        )}
+
+        {projects.slice(0, 8).map((project) => (
+          <button key={project.id} style={styles.project} onClick={() => go(project.type === "Termin" ? "appointments" : "config")}>
+            <div style={styles.projectImg}></div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <b>{project.title}</b>
+              <p style={styles.smallMuted}>{project.subtitle}</p>
+              <span style={styles.badge}>{project.type}</span>
+            </div>
+            <ChevronRight />
+          </button>
+        ))}
       </main>
       <BottomNav active="home" go={go} />
     </Phone>
@@ -293,6 +323,7 @@ function Configurator({ go }) {
   const [a4Distance, setA4Distance] = useState(null);
   const [measuredWidth, setMeasuredWidth] = useState(null);
   const [measuredHeight, setMeasuredHeight] = useState(null);
+  const [useCameraMeasure, setUseCameraMeasure] = useState(false);
 
   function handlePhotos(event) {
     const files = Array.from(event.target.files || []);
@@ -485,6 +516,17 @@ function Configurator({ go }) {
       `Nachricht:\n${customer.note}`
     );
 
+    saveStoredProject({
+      id: Date.now(),
+      type: "Offerte",
+      title: customer.name ? `Offerte von ${customer.name}` : "Neue Offertenanfrage",
+      subtitle: `${quoteItems.length} Produkt(e) · CHF ${quoteTotal}.00 · ${formatDateTime()}`,
+      customer,
+      items: quoteItems,
+      total: quoteTotal,
+      createdAt: new Date().toISOString()
+    });
+
     window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
   }
 
@@ -522,6 +564,16 @@ function Configurator({ go }) {
         </label>
 
         <h4>Kamera-Messung optional</h4>
+        <label style={styles.checkRow}>
+          <input
+            type="checkbox"
+            checked={useCameraMeasure}
+            onChange={(e) => setUseCameraMeasure(e.target.checked)}
+          />
+          Masse mit Foto ungefähr bestimmen
+        </label>
+
+        {useCameraMeasure && (
         <div style={styles.measureBox}>
           <b>Fenster ungefähr messen</b>
 
@@ -615,6 +667,7 @@ function Configurator({ go }) {
             )}
           </div>
         </div>
+        )}
 
         <h4>Masse in cm</h4>
         <label style={styles.inputRow}>Breite
@@ -838,29 +891,31 @@ function Appointments({ go }) {
   function submitBooking(e) {
     e.preventDefault();
 
+    if (!booking.name || !booking.email || !booking.phone) {
+      alert("Bitte mindestens Name, E-Mail und Telefonnummer ausfüllen.");
+      return;
+    }
+
+    saveStoredProject({
+      id: Date.now(),
+      type: "Termin",
+      title: booking.name ? `Termin von ${booking.name}` : "Neue Terminanfrage",
+      subtitle: `${booking.type} · ${booking.date || "Wunschdatum offen"} ${booking.time || ""}`,
+      booking,
+      createdAt: new Date().toISOString()
+    });
+
     const subject = encodeURIComponent("Neue Terminanfrage über Vindonissa Home");
     const body = encodeURIComponent(
-      `Neue Terminanfrage
-
-` +
-      `Name: ${booking.name}
-` +
-      `E-Mail: ${booking.email}
-` +
-      `Telefon: ${booking.phone}
-` +
-      `Adresse: ${booking.address}
-
-` +
-      `Terminart: ${booking.type}
-` +
-      `Wunschdatum: ${booking.date}
-` +
-      `Wunschzeit: ${booking.time}
-
-` +
-      `Notiz:
-${booking.note}`
+      `Neue Terminanfrage\n\n` +
+      `Name: ${booking.name}\n` +
+      `E-Mail: ${booking.email}\n` +
+      `Telefon: ${booking.phone}\n` +
+      `Adresse: ${booking.address}\n\n` +
+      `Terminart: ${booking.type}\n` +
+      `Wunschdatum: ${booking.date}\n` +
+      `Wunschzeit: ${booking.time}\n\n` +
+      `Notiz:\n${booking.note}`
     );
 
     window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
@@ -885,24 +940,14 @@ ${booking.note}`
             <option>Service / Reparatur</option>
           </select>
 
-          <div style={styles.twoCols}>
-            <input style={styles.formInput} type="date" value={booking.date} onChange={(e) => update("date", e.target.value)} />
-            <input style={styles.formInput} type="time" value={booking.time} onChange={(e) => update("time", e.target.value)} />
-          </div>
+          <input style={styles.formInput} type="date" value={booking.date} onChange={(e) => update("date", e.target.value)} />
+          <input style={styles.formInput} type="time" value={booking.time} onChange={(e) => update("time", e.target.value)} />
 
           <input style={styles.formInput} placeholder="Adresse / PLZ / Ort" value={booking.address} onChange={(e) => update("address", e.target.value)} />
           <textarea style={{ ...styles.formInput, minHeight: 90, resize: "none" }} placeholder="Notiz / Besonderheiten" value={booking.note} onChange={(e) => update("note", e.target.value)} />
 
-          <button type="submit" style={styles.fullGold}>Terminanfrage senden</button>
+          <button type="submit" style={styles.fullGold}>Terminanfrage speichern & senden</button>
         </form>
-
-        <div style={styles.appointmentCard}>
-          <CalendarDays color="#a98745" />
-          <div>
-            <b>Nächster geplanter Termin</b>
-            <p style={styles.smallMuted}>Freitag, 14:30 Uhr · Brugg AG</p>
-          </div>
-        </div>
       </main>
       <BottomNav active="appointments" go={go} />
     </Phone>
@@ -910,22 +955,7 @@ ${booking.note}`
 }
 
 function Profile({ go }) {
-  const [customer, setCustomer] = useState({
-    name: "Vindonissa Kunde",
-    email: "kunde@email.ch",
-    phone: "+41 ",
-    address: "Brugg, Schweiz"
-  });
-
-  function update(field, value) {
-    setCustomer({ ...customer, [field]: value });
-  }
-
-  function saveProfile(e) {
-    e.preventDefault();
-    localStorage.setItem("vindonissaCustomer", JSON.stringify(customer));
-    alert("Kundendaten wurden lokal gespeichert.");
-  }
+  const projects = getStoredProjects();
 
   return (
     <Phone>
@@ -933,35 +963,31 @@ function Profile({ go }) {
       <main style={styles.page}>
         <div style={styles.profileHead}>
           <div style={styles.avatar}>V</div>
-          <h1 style={styles.h1}>{customer.name || "Kundenportal"}</h1>
-          <p style={styles.smallMuted}>Ihre Daten, Projekte und Anfragen</p>
+          <h1 style={styles.h1}>Kundenportal</h1>
+          <p style={styles.smallMuted}>Offerten, Termine und gespeicherte Projekte</p>
         </div>
 
-        <div style={styles.quickGrid}>
-          <QuickButton icon={FileText} label="Offerte anfragen" onClick={() => go("offers")} />
+        <div style={styles.quickGridClean}>
+          <QuickButton icon={FileText} label="Neue Offerte" onClick={() => go("config")} />
           <QuickButton icon={CalendarDays} label="Termin buchen" onClick={() => go("appointments")} />
-          <QuickButton icon={PhoneCall} label="Anrufen" onClick={() => window.location.href = "tel:+41790000000"} />
         </div>
-
-        <h3>Kundendaten</h3>
-        <form onSubmit={saveProfile} style={styles.form}>
-          <input style={styles.formInput} placeholder="Name" value={customer.name} onChange={(e) => update("name", e.target.value)} />
-          <input style={styles.formInput} placeholder="E-Mail" value={customer.email} onChange={(e) => update("email", e.target.value)} />
-          <input style={styles.formInput} placeholder="Telefon" value={customer.phone} onChange={(e) => update("phone", e.target.value)} />
-          <input style={styles.formInput} placeholder="Adresse" value={customer.address} onChange={(e) => update("address", e.target.value)} />
-          <button type="submit" style={styles.fullGold}>Daten speichern</button>
-        </form>
 
         <h3>Meine Projekte</h3>
-        <button style={styles.project} onClick={() => go("config")}>
-          <div style={styles.projectImg}></div>
-          <div style={{ flex: 1, textAlign: "left" }}>
-            <b>Terrassentür Wohnzimmer</b>
-            <p style={styles.smallMuted}>Drehrahmen · In Bearbeitung</p>
-            <span style={styles.badge}>Offerte offen</span>
+
+        {projects.length === 0 && (
+          <div style={styles.emptyBox}>Noch keine gespeicherten Projekte.</div>
+        )}
+
+        {projects.map((project) => (
+          <div key={project.id} style={styles.offerCard}>
+            <div>
+              <b>{project.title}</b>
+              <p style={styles.smallMuted}>{project.subtitle}</p>
+              <span style={styles.badge}>{project.type}</span>
+            </div>
+            <ChevronRight />
           </div>
-          <ChevronRight />
-        </button>
+        ))}
       </main>
       <BottomNav active="profile" go={go} />
     </Phone>
@@ -1003,11 +1029,9 @@ export default function App() {
   if (screen === "home") return <div style={styles.app}><Dashboard go={setScreen} /></div>;
   if (screen === "products") return <div style={styles.app}><Products go={setScreen} /></div>;
   if (screen === "config") return <div style={styles.app}><Configurator go={setScreen} /></div>;
-  if (screen === "ar") return <div style={styles.app}><ARPreview go={setScreen} /></div>;
   if (screen === "offers") return <div style={styles.app}><Offers go={setScreen} /></div>;
   if (screen === "appointments") return <div style={styles.app}><Appointments go={setScreen} /></div>;
   if (screen === "profile") return <div style={styles.app}><Profile go={setScreen} /></div>;
-  if (screen === "smart") return <div style={styles.app}><SmartHome go={setScreen} /></div>;
 
   return <div style={styles.app}><Dashboard go={setScreen} /></div>;
 }
@@ -1031,6 +1055,7 @@ const styles = {
   hero: { background: "linear-gradient(135deg,#171717,#77705f)", color: "white", borderRadius: 20, padding: 22, height: 145, margin: "18px 0", boxShadow: "0 12px 25px rgba(0,0,0,.12)" },
   heroButton: { background: gold, border: 0, borderRadius: 12, padding: "12px 16px", fontWeight: 800 },
   quickGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 },
+  quickGridClean: { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 },
   quickCard: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 12, height: 92, textAlign: "left", boxShadow: "0 4px 12px rgba(0,0,0,.05)" },
   quickLabel: { display: "block", marginTop: 14, fontSize: 11, fontWeight: 700 },
   sectionTop: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 20 },
