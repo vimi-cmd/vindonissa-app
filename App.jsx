@@ -187,12 +187,43 @@ function Configurator({ go }) {
   const [color, setColor] = useState(colors[0]);
   const [w, setW] = useState(1200);
   const [h, setH] = useState(2400);
+  const [room, setRoom] = useState("Wohnzimmer");
+  const [saved, setSaved] = useState(false);
+
   const price = useMemo(() => Math.round(product.price + (w * h) / 14000), [product, w, h]);
+
+  function saveProject() {
+    const project = {
+      id: Date.now(),
+      room,
+      product: product.label,
+      color: color.name,
+      ral: color.ral,
+      width: w,
+      height: h,
+      price,
+      status: "Entwurf"
+    };
+
+    const existing = JSON.parse(localStorage.getItem("vindonissaProjects") || "[]");
+    localStorage.setItem("vindonissaProjects", JSON.stringify([project, ...existing]));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2200);
+  }
 
   return (
     <Phone>
       <Header title="Produkt konfigurieren" back go={go} />
       <main style={styles.page}>
+        {saved && <div style={styles.successBox}>Projekt wurde gespeichert.</div>}
+
+        <input
+          style={styles.formInput}
+          placeholder="Raum / Projektname"
+          value={room}
+          onChange={(e) => setRoom(e.target.value)}
+        />
+
         <div style={styles.productTabs}>
           {products.map((p) => {
             const Icon = p.icon;
@@ -244,11 +275,13 @@ function Configurator({ go }) {
         <label style={styles.inputRow}>Höhe
           <input style={styles.input} value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> mm
         </label>
+
+        <button style={styles.secondaryButton} onClick={saveProject}>Projekt speichern</button>
       </main>
 
       <div style={styles.priceBar}>
-        <div><small>Preis inkl. MwSt.</small><br /><b>CHF {price}.00</b></div>
-        <button style={styles.goldSmall} onClick={() => go("ar")}>Speichern & weiter</button>
+        <div><small>Richtpreis inkl. MwSt.</small><br /><b>CHF {price}.00</b></div>
+        <button style={styles.goldSmall} onClick={() => go("ar")}>AR-Vorschau</button>
       </div>
     </Phone>
   );
@@ -623,5 +656,7 @@ const styles = {
   form: { display: "grid", gap: 10, marginTop: 16, marginBottom: 18 },
   formInput: { width: "100%", boxSizing: "border-box", border: "1px solid #e7e1d3", background: "white", borderRadius: 14, padding: "14px 14px", fontSize: 14, outline: "none" },
   twoCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
+  successBox: { background: "#e9f5df", color: "#2e5c1f", border: "1px solid #cde7be", borderRadius: 14, padding: 12, marginBottom: 12, fontWeight: 800, fontSize: 13 },
+  secondaryButton: { width: "100%", marginTop: 16, background: "#111", color: "white", border: 0, borderRadius: 16, padding: 15, fontWeight: 900 },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
