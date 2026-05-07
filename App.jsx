@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from "react";
 import {
   Home, Grid2X2, CalendarDays, User, FileText, Camera,
@@ -98,10 +99,9 @@ const products = [
 ];
 
 const colors = [
-  { name: "Anthrazitgrau", ral: "RAL 7016", value: "#25282a" },
-  { name: "Weiss", ral: "RAL 9016", value: "#eeeae0" },
-  { name: "Schwarz", ral: "RAL 9005", value: "#050505" },
-  { name: "Bronze", ral: "Sonderfarbe", value: "#9a856d" },
+  { name: "Weiss", ral: "RAL 9016", value: "#f3f1eb", special: false },
+  { name: "Eloxiert", ral: "Standard", value: "#b8b2a8", special: false },
+  { name: "Sonderfarbe", ral: "nach Wunsch", value: "#d3b56f", special: true }
 ];
 
 function Phone({ children, black = false }) {
@@ -269,7 +269,6 @@ function Configurator({ go }) {
   const [quantity, setQuantity] = useState(1);
   const [room, setRoom] = useState("Wohnzimmer");
   const [meshType, setMeshType] = useState(products[0].meshOptions[0]);
-  const [extraColor, setExtraColor] = useState(false);
   const [quoteItems, setQuoteItems] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("vindonissaQuoteItems") || "[]");
@@ -315,12 +314,12 @@ function Configurator({ go }) {
     const meshAddon = Math.round(meshAddons[meshType] || 0);
 
     const specialColorAllowed = product.id !== "lichtschacht";
-    const specialColor = extraColor && specialColorAllowed ? Math.max(95, Math.round(9.5 * perimeter)) : 0;
+    const specialColor = color.special && specialColorAllowed ? Math.max(95, Math.round(9.5 * perimeter)) : 0;
 
     const total = Math.round((base + meshAddon + specialColor) * Math.max(1, Number(quantity) || 1));
 
     return { base, meshAddon, specialColor, total };
-  }, [product, w, h, quantity, meshType, extraColor, area, perimeter]);
+  }, [product, w, h, quantity, meshType, color, area, perimeter]);
 
   const quoteTotal = quoteItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
 
@@ -340,7 +339,7 @@ function Configurator({ go }) {
       color: product.id === "lichtschacht" ? "Chromstahl" : color.name,
       ral: product.id === "lichtschacht" ? "" : color.ral,
       meshType,
-      extraColor,
+      extraColor: color.special,
       base: priceData.base,
       meshAddon: priceData.meshAddon,
       specialColor: priceData.specialColor,
@@ -446,18 +445,28 @@ function Configurator({ go }) {
         {product.id !== "lichtschacht" && (
           <>
             <h4>Farbe Rahmen</h4>
-            <div style={styles.colorRow}>
+            <div style={styles.colorChoiceGrid}>
               {colors.map((c) => (
-                <button key={c.name} onClick={() => setColor(c)} style={{
-                  ...styles.colorDot,
-                  background: c.value,
-                  outline: color.name === c.name ? `3px solid ${gold}` : "none",
-                }} />
+                <button
+                  key={c.name}
+                  onClick={() => setColor(c)}
+                  style={{
+                    ...styles.colorChoice,
+                    borderColor: color.name === c.name ? gold : "#eee",
+                    background: color.name === c.name ? "#fff8e7" : "white"
+                  }}
+                >
+                  <span style={{ ...styles.colorDot, background: c.value }}></span>
+                  <b>{c.name}</b>
+                  <small>{c.ral}</small>
+                </button>
               ))}
-              <div style={{ marginLeft: "auto", textAlign: "right", fontSize: 12 }}>
-                <b>{color.name}</b><br /><span style={styles.smallMuted}>{color.ral}</span>
-              </div>
             </div>
+            {color.special && (
+              <div style={styles.noticeBox}>
+                Sonderfarbzuschlag wird automatisch berechnet.
+              </div>
+            )}
           </>
         )}
 
@@ -468,12 +477,6 @@ function Configurator({ go }) {
           ))}
         </select>
 
-        {product.id !== "lichtschacht" && (
-          <label style={styles.checkRow}>
-            <input type="checkbox" checked={extraColor} onChange={(e) => setExtraColor(e.target.checked)} />
-            Sonderfarbe berechnen
-          </label>
-        )}
 
         <div style={styles.priceDetails}>
           <div><span>Aktueller Preis total</span><b>CHF {priceData.total}.00</b></div>
@@ -830,5 +833,8 @@ const styles = {
   removeButton: { width: 34, height: 34, borderRadius: 999, border: 0, background: "#111", color: "white", fontSize: 22, lineHeight: "30px" },
   totalBox: { display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", color: "white", borderRadius: 18, padding: 16, margin: "14px 0", fontSize: 18 },
   emptyBox: { background: "white", border: "1px dashed #d8c9a5", borderRadius: 16, padding: 16, color: "#777", textAlign: "center" },
+  colorChoiceGrid: { display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 12 },
+  colorChoice: { display: "flex", alignItems: "center", gap: 10, border: "2px solid #eee", borderRadius: 16, padding: 13, textAlign: "left" },
+  noticeBox: { background: "#fff8e7", border: "1px solid #ead59b", color: "#7c5f1d", borderRadius: 14, padding: 12, fontSize: 12, fontWeight: 800, marginBottom: 12 },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
