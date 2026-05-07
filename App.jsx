@@ -20,18 +20,8 @@ const products = [
     minH: 50,
     maxW: 180,
     maxH: 250,
-    icon: Grid2X2
-  },
-  {
-    id: "dachfenster",
-    label: "Drehrahmen Dachfenster",
-    price: 422,
-    step: 8,
-    minW: 50,
-    minH: 50,
-    maxW: 140,
-    maxH: 250,
-    icon: DoorOpen
+    icon: Grid2X2,
+    meshOptions: ["Standardnetz", "Transparent Netz"]
   },
   {
     id: "schiebe_1",
@@ -42,7 +32,8 @@ const products = [
     minH: 50,
     maxW: 180,
     maxH: 250,
-    icon: SlidersHorizontal
+    icon: SlidersHorizontal,
+    meshOptions: ["Standardnetz", "Transparent Netz"]
   },
   {
     id: "drehtuer",
@@ -53,7 +44,8 @@ const products = [
     minH: 190,
     maxW: 220,
     maxH: 260,
-    icon: DoorOpen
+    icon: DoorOpen,
+    meshOptions: ["Standardnetz", "Transparent Netz"]
   },
   {
     id: "pendeltuer",
@@ -64,7 +56,8 @@ const products = [
     minH: 190,
     maxW: 220,
     maxH: 260,
-    icon: DoorOpen
+    icon: DoorOpen,
+    meshOptions: ["Standardnetz", "Transparent Netz"]
   },
   {
     id: "rollo",
@@ -75,40 +68,32 @@ const products = [
     minH: 60,
     maxW: 200,
     maxH: 240,
-    icon: Smartphone
+    icon: Smartphone,
+    meshOptions: ["BetterVue"]
   },
   {
     id: "plissee",
-    label: "Plissée 1-flügelig",
+    label: "Plissée",
     price: 892,
     step: 23,
     minW: 100,
     minH: 190,
     maxW: 350,
     maxH: 340,
-    icon: Grid2X2
+    icon: Grid2X2,
+    meshOptions: ["Standardnetz"]
   },
   {
-    id: "plissee_bilateral",
-    label: "Plissée bilateral",
-    price: 1198,
-    step: 23,
-    minW: 100,
-    minH: 190,
-    maxW: 350,
-    maxH: 290,
-    icon: Grid2X2
-  },
-  {
-    id: "plissee_2",
-    label: "Plissée 2-flügelig",
-    price: 1650,
-    step: 46,
-    minW: 140,
-    minH: 190,
-    maxW: 700,
-    maxH: 340,
-    icon: Grid2X2
+    id: "lichtschacht",
+    label: "Lichtschachtabdeckung Standard",
+    price: 390,
+    step: 12,
+    minW: 60,
+    minH: 40,
+    maxW: 200,
+    maxH: 120,
+    icon: Grid2X2,
+    meshOptions: ["Chromstahlnetz"]
   }
 ];
 
@@ -282,9 +267,14 @@ function Configurator({ go }) {
   const [w, setW] = useState(120);
   const [h, setH] = useState(140);
   const [room, setRoom] = useState("Wohnzimmer");
-  const [meshType, setMeshType] = useState("Standardnetz");
+  const [meshType, setMeshType] = useState(products[0].meshOptions[0]);
   const [extraColor, setExtraColor] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  function selectProduct(p) {
+    setProduct(p);
+    setMeshType(p.meshOptions[0]);
+  }
 
   const area = Math.max(0.5, (Number(w) * Number(h)) / 10000);
   const perimeter = Math.max(2, ((Number(w) + Number(h)) * 2) / 100);
@@ -302,14 +292,14 @@ function Configurator({ go }) {
     const meshAddons = {
       "Standardnetz": 0,
       "Transparent Netz": 15 * area,
-      "Pet-Screen": 60 * area,
-      "Pollenschutz": 80 * area,
-      "Edelstahl silber": 80 * area,
-      "Edelstahl schwarz": 80 * area
+      "BetterVue": 0,
+      "Chromstahlnetz": 0
     };
 
     const meshAddon = Math.round(meshAddons[meshType] || 0);
-    const specialColor = extraColor ? Math.max(95, Math.round(9.5 * perimeter)) : 0;
+
+    const specialColorAllowed = product.id !== "lichtschacht";
+    const specialColor = extraColor && specialColorAllowed ? Math.max(95, Math.round(9.5 * perimeter)) : 0;
 
     const total = Math.round(base + meshAddon + specialColor);
 
@@ -354,7 +344,7 @@ function Configurator({ go }) {
           {products.map((p) => {
             const Icon = p.icon;
             return (
-              <button key={p.id} onClick={() => setProduct(p)} style={{ ...styles.productTab, borderColor: product.id === p.id ? gold : "#eee" }}>
+              <button key={p.id} onClick={() => selectProduct(p)} style={{ ...styles.productTab, borderColor: product.id === p.id ? gold : "#eee" }}>
                 <Icon size={20} color="#a98745" />
                 <span>{p.label}</span>
               </button>
@@ -363,54 +353,55 @@ function Configurator({ go }) {
         </div>
 
         <div style={styles.windowWrap}>
-          <div style={{ ...styles.windowFrame, borderColor: color.value }}>
+          <div style={{ ...styles.windowFrame, borderColor: product.id === "lichtschacht" ? "#b9b9b9" : color.value }}>
             <div style={styles.mesh}></div>
           </div>
-          <div style={{ ...styles.openFrame, borderColor: color.value }}>
+          <div style={{ ...styles.openFrame, borderColor: product.id === "lichtschacht" ? "#b9b9b9" : color.value }}>
             <div style={styles.mesh}></div>
           </div>
         </div>
 
         <h4>Masse in cm</h4>
-        <div style={styles.twoCols}>
-          <label style={styles.inputRow}>Breite
-            <input style={styles.input} value={w} onChange={(e) => setW(Number(e.target.value) || 0)} /> cm
-          </label>
-          <label style={styles.inputRow}>Höhe
-            <input style={styles.input} value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> cm
-          </label>
-        </div>
+        <label style={styles.inputRow}>Breite
+          <input style={styles.input} value={w} onChange={(e) => setW(Number(e.target.value) || 0)} /> cm
+        </label>
+        <label style={styles.inputRow}>Höhe
+          <input style={styles.input} value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> cm
+        </label>
 
         <p style={styles.smallMuted}>Preis wird auf die nächste 10-cm-Stufe gerundet.</p>
 
-        <h4>Farbe Rahmen</h4>
-        <div style={styles.colorRow}>
-          {colors.map((c) => (
-            <button key={c.name} onClick={() => setColor(c)} style={{
-              ...styles.colorDot,
-              background: c.value,
-              outline: color.name === c.name ? `3px solid ${gold}` : "none",
-            }} />
-          ))}
-          <div style={{ marginLeft: "auto", textAlign: "right", fontSize: 12 }}>
-            <b>{color.name}</b><br /><span style={styles.smallMuted}>{color.ral}</span>
-          </div>
-        </div>
+        {product.id !== "lichtschacht" && (
+          <>
+            <h4>Farbe Rahmen</h4>
+            <div style={styles.colorRow}>
+              {colors.map((c) => (
+                <button key={c.name} onClick={() => setColor(c)} style={{
+                  ...styles.colorDot,
+                  background: c.value,
+                  outline: color.name === c.name ? `3px solid ${gold}` : "none",
+                }} />
+              ))}
+              <div style={{ marginLeft: "auto", textAlign: "right", fontSize: 12 }}>
+                <b>{color.name}</b><br /><span style={styles.smallMuted}>{color.ral}</span>
+              </div>
+            </div>
+          </>
+        )}
 
-        <h4>Gewebe / Optionen</h4>
+        <h4>Gewebe</h4>
         <select style={styles.formInput} value={meshType} onChange={(e) => setMeshType(e.target.value)}>
-          <option>Standardnetz</option>
-          <option>Transparent Netz</option>
-          <option>Pet-Screen</option>
-          <option>Pollenschutz</option>
-          <option>Edelstahl silber</option>
-          <option>Edelstahl schwarz</option>
+          {product.meshOptions.map((option) => (
+            <option key={option}>{option}</option>
+          ))}
         </select>
 
-        <label style={styles.checkRow}>
-          <input type="checkbox" checked={extraColor} onChange={(e) => setExtraColor(e.target.checked)} />
-          Sonderfarbe berechnen
-        </label>
+        {product.id !== "lichtschacht" && (
+          <label style={styles.checkRow}>
+            <input type="checkbox" checked={extraColor} onChange={(e) => setExtraColor(e.target.checked)} />
+            Sonderfarbe berechnen
+          </label>
+        )}
 
         <div style={styles.priceDetails}>
           <div><span>Grundpreis</span><b>CHF {priceData.base}.00</b></div>
