@@ -285,6 +285,17 @@ function Configurator({ go }) {
     note: ""
   });
 
+  const [photos, setPhotos] = useState([]);
+
+  function handlePhotos(event) {
+    const files = Array.from(event.target.files || []);
+    const previews = files.map((file) => ({
+      name: file.name,
+      url: URL.createObjectURL(file)
+    }));
+    setPhotos(previews);
+  }
+
   function selectProduct(productId) {
     const selected = products.find((p) => p.id === productId) || products[0];
     setProduct(selected);
@@ -395,6 +406,8 @@ function Configurator({ go }) {
       `Adresse: ${customer.address}\n\n` +
       `Produkte\n\n${itemsText}\n` +
       `Gesamtsumme: CHF ${quoteTotal}.00\n\n` +
+      `Fotos: ${photos.length > 0 ? photos.map((p) => p.name).join(", ") : "Keine Fotos hinzugefügt"}\n` +
+      `Hinweis: Fotos werden in dieser Testversion nicht automatisch angehängt. Bitte bei Bedarf separat senden.\n\n` +
       `Nachricht:\n${customer.note}`
     );
 
@@ -515,6 +528,29 @@ function Configurator({ go }) {
         <input style={styles.formInput} placeholder="Telefonnummer" value={customer.phone} onChange={(e) => updateCustomer("phone", e.target.value)} />
         <input style={styles.formInput} placeholder="Adresse / PLZ / Ort" value={customer.address} onChange={(e) => updateCustomer("address", e.target.value)} />
         <textarea style={{ ...styles.formInput, minHeight: 90, resize: "none" }} placeholder="Nachricht / Besonderheiten" value={customer.note} onChange={(e) => updateCustomer("note", e.target.value)} />
+
+        <h3>Fotos optional</h3>
+        <div style={styles.photoBox}>
+          <p style={styles.smallMuted}>Fotos sind freiwillig. Sie helfen bei der Einschätzung, sind aber nicht zwingend nötig.</p>
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            onChange={handlePhotos}
+            style={styles.fileInput}
+          />
+          {photos.length > 0 && (
+            <div style={styles.photoGrid}>
+              {photos.map((photo) => (
+                <div key={photo.url} style={styles.photoPreview}>
+                  <img src={photo.url} alt={photo.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ))}
+            </div>
+          )}
+          <p style={styles.photoHint}>Hinweis: In dieser Testversion werden Fotos nicht automatisch per E-Mail angehängt.</p>
+        </div>
 
         <button style={styles.fullGold} onClick={sendQuoteRequest}>Offerte senden</button>
         <button style={styles.secondaryButton} onClick={clearQuote}>Liste leeren</button>
@@ -836,5 +872,10 @@ const styles = {
   colorChoiceGrid: { display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 12 },
   colorChoice: { display: "flex", alignItems: "center", gap: 10, border: "2px solid #eee", borderRadius: 16, padding: 13, textAlign: "left" },
   noticeBox: { background: "#fff8e7", border: "1px solid #ead59b", color: "#7c5f1d", borderRadius: 14, padding: 12, fontSize: 12, fontWeight: 800, marginBottom: 12 },
+  photoBox: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 14, marginBottom: 14 },
+  fileInput: { width: "100%", marginTop: 8, marginBottom: 10, fontSize: 13 },
+  photoGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 10 },
+  photoPreview: { height: 70, borderRadius: 12, overflow: "hidden", background: "#eee" },
+  photoHint: { color: "#9a7a34", fontSize: 11, fontWeight: 700, margin: "8px 0 0" },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
