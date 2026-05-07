@@ -11,11 +11,105 @@ const cream = "#f7f3ea";
 const dark = "#111111";
 
 const products = [
-  { id: "spannrahmen", label: "Spannrahmen", price: 320, icon: Grid2X2 },
-  { id: "drehrahmen", label: "Drehrahmen", price: 560, icon: DoorOpen },
-  { id: "schiebetuer", label: "Schiebetür", price: 890, icon: SlidersHorizontal },
-  { id: "plissee", label: "Plissee", price: 740, icon: Grid2X2 },
-  { id: "rollo", label: "Rollo", price: 430, icon: Smartphone },
+  {
+    id: "spannrahmen",
+    label: "Spannrahmen",
+    price: 293,
+    step: 8,
+    minW: 50,
+    minH: 50,
+    maxW: 180,
+    maxH: 250,
+    icon: Grid2X2
+  },
+  {
+    id: "dachfenster",
+    label: "Drehrahmen Dachfenster",
+    price: 422,
+    step: 8,
+    minW: 50,
+    minH: 50,
+    maxW: 140,
+    maxH: 250,
+    icon: DoorOpen
+  },
+  {
+    id: "schiebe_1",
+    label: "Schiebeelement 1-flügelig",
+    price: 515,
+    step: 11,
+    minW: 50,
+    minH: 50,
+    maxW: 180,
+    maxH: 250,
+    icon: SlidersHorizontal
+  },
+  {
+    id: "drehtuer",
+    label: "Drehtür / Drehfenster",
+    price: 388,
+    step: 13,
+    minW: 50,
+    minH: 190,
+    maxW: 220,
+    maxH: 260,
+    icon: DoorOpen
+  },
+  {
+    id: "pendeltuer",
+    label: "Pendeltür",
+    price: 995,
+    step: 22,
+    minW: 70,
+    minH: 190,
+    maxW: 220,
+    maxH: 260,
+    icon: DoorOpen
+  },
+  {
+    id: "rollo",
+    label: "Rollo",
+    price: 343,
+    step: 13,
+    minW: 60,
+    minH: 60,
+    maxW: 200,
+    maxH: 240,
+    icon: Smartphone
+  },
+  {
+    id: "plissee",
+    label: "Plissée 1-flügelig",
+    price: 892,
+    step: 23,
+    minW: 100,
+    minH: 190,
+    maxW: 350,
+    maxH: 340,
+    icon: Grid2X2
+  },
+  {
+    id: "plissee_bilateral",
+    label: "Plissée bilateral",
+    price: 1198,
+    step: 23,
+    minW: 100,
+    minH: 190,
+    maxW: 350,
+    maxH: 290,
+    icon: Grid2X2
+  },
+  {
+    id: "plissee_2",
+    label: "Plissée 2-flügelig",
+    price: 1650,
+    step: 46,
+    minW: 140,
+    minH: 190,
+    maxW: 700,
+    maxH: 340,
+    icon: Grid2X2
+  }
 ];
 
 const colors = [
@@ -183,14 +277,44 @@ function Products({ go }) {
 }
 
 function Configurator({ go }) {
-  const [product, setProduct] = useState(products[1]);
+  const [product, setProduct] = useState(products[0]);
   const [color, setColor] = useState(colors[0]);
-  const [w, setW] = useState(1200);
-  const [h, setH] = useState(2400);
+  const [w, setW] = useState(120);
+  const [h, setH] = useState(140);
   const [room, setRoom] = useState("Wohnzimmer");
+  const [meshType, setMeshType] = useState("Standardnetz");
+  const [extraColor, setExtraColor] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const price = useMemo(() => Math.round(product.price + (w * h) / 14000), [product, w, h]);
+  const area = Math.max(0.5, (Number(w) * Number(h)) / 10000);
+  const perimeter = Math.max(2, ((Number(w) + Number(h)) * 2) / 100);
+
+  function roundUp10(value) {
+    return Math.ceil(Number(value || 0) / 10) * 10;
+  }
+
+  const priceData = useMemo(() => {
+    const widthSteps = Math.max(0, (roundUp10(w) - product.minW) / 10);
+    const heightSteps = Math.max(0, (roundUp10(h) - product.minH) / 10);
+
+    let base = product.price + Math.round((widthSteps + heightSteps) * product.step);
+
+    const meshAddons = {
+      "Standardnetz": 0,
+      "Transparent Netz": 15 * area,
+      "Pet-Screen": 60 * area,
+      "Pollenschutz": 80 * area,
+      "Edelstahl silber": 80 * area,
+      "Edelstahl schwarz": 80 * area
+    };
+
+    const meshAddon = Math.round(meshAddons[meshType] || 0);
+    const specialColor = extraColor ? Math.max(95, Math.round(9.5 * perimeter)) : 0;
+
+    const total = Math.round(base + meshAddon + specialColor);
+
+    return { base, meshAddon, specialColor, total };
+  }, [product, w, h, meshType, extraColor, area, perimeter]);
 
   function saveProject() {
     const project = {
@@ -201,7 +325,8 @@ function Configurator({ go }) {
       ral: color.ral,
       width: w,
       height: h,
-      price,
+      meshType,
+      price: priceData.total,
       status: "Entwurf"
     };
 
@@ -213,7 +338,7 @@ function Configurator({ go }) {
 
   return (
     <Phone>
-      <Header title="Produkt konfigurieren" back go={go} />
+      <Header title="Preisrechner" back go={go} />
       <main style={styles.page}>
         {saved && <div style={styles.successBox}>Projekt wurde gespeichert.</div>}
 
@@ -224,6 +349,7 @@ function Configurator({ go }) {
           onChange={(e) => setRoom(e.target.value)}
         />
 
+        <h4>Produktgruppe</h4>
         <div style={styles.productTabs}>
           {products.map((p) => {
             const Icon = p.icon;
@@ -245,6 +371,18 @@ function Configurator({ go }) {
           </div>
         </div>
 
+        <h4>Masse in cm</h4>
+        <div style={styles.twoCols}>
+          <label style={styles.inputRow}>Breite
+            <input style={styles.input} value={w} onChange={(e) => setW(Number(e.target.value) || 0)} /> cm
+          </label>
+          <label style={styles.inputRow}>Höhe
+            <input style={styles.input} value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> cm
+          </label>
+        </div>
+
+        <p style={styles.smallMuted}>Preis wird auf die nächste 10-cm-Stufe gerundet.</p>
+
         <h4>Farbe Rahmen</h4>
         <div style={styles.colorRow}>
           {colors.map((c) => (
@@ -259,29 +397,33 @@ function Configurator({ go }) {
           </div>
         </div>
 
-        <div style={styles.option}>
-          <div style={styles.circle}></div>
-          <div style={{ flex: 1 }}>
-            <b>Transpatec</b>
-            <p style={{ ...styles.smallMuted, margin: 0 }}>Optimale Durchsicht</p>
-          </div>
-          <ChevronRight />
-        </div>
+        <h4>Gewebe / Optionen</h4>
+        <select style={styles.formInput} value={meshType} onChange={(e) => setMeshType(e.target.value)}>
+          <option>Standardnetz</option>
+          <option>Transparent Netz</option>
+          <option>Pet-Screen</option>
+          <option>Pollenschutz</option>
+          <option>Edelstahl silber</option>
+          <option>Edelstahl schwarz</option>
+        </select>
 
-        <h4>Masse</h4>
-        <label style={styles.inputRow}>Breite
-          <input style={styles.input} value={w} onChange={(e) => setW(Number(e.target.value) || 0)} /> mm
+        <label style={styles.checkRow}>
+          <input type="checkbox" checked={extraColor} onChange={(e) => setExtraColor(e.target.checked)} />
+          Sonderfarbe berechnen
         </label>
-        <label style={styles.inputRow}>Höhe
-          <input style={styles.input} value={h} onChange={(e) => setH(Number(e.target.value) || 0)} /> mm
-        </label>
+
+        <div style={styles.priceDetails}>
+          <div><span>Grundpreis</span><b>CHF {priceData.base}.00</b></div>
+          <div><span>Gewebe-Aufpreis</span><b>CHF {priceData.meshAddon}.00</b></div>
+          <div><span>Sonderfarbe</span><b>CHF {priceData.specialColor}.00</b></div>
+        </div>
 
         <button style={styles.secondaryButton} onClick={saveProject}>Projekt speichern</button>
       </main>
 
       <div style={styles.priceBar}>
-        <div><small>Richtpreis inkl. MwSt.</small><br /><b>CHF {price}.00</b></div>
-        <button style={styles.goldSmall} onClick={() => go("ar")}>AR-Vorschau</button>
+        <div><small>Richtpreis inkl. MwSt. & Montage</small><br /><b>CHF {priceData.total}.00</b></div>
+        <button style={styles.goldSmall} onClick={() => go("offers")}>Offerte</button>
       </div>
     </Phone>
   );
@@ -658,5 +800,7 @@ const styles = {
   twoCols: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 },
   successBox: { background: "#e9f5df", color: "#2e5c1f", border: "1px solid #cde7be", borderRadius: 14, padding: 12, marginBottom: 12, fontWeight: 800, fontSize: 13 },
   secondaryButton: { width: "100%", marginTop: 16, background: "#111", color: "white", border: 0, borderRadius: 16, padding: 15, fontWeight: 900 },
+  checkRow: { display: "flex", alignItems: "center", gap: 10, background: "white", border: "1px solid #eee", borderRadius: 14, padding: 13, marginTop: 10, fontWeight: 700 },
+  priceDetails: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 14, marginTop: 14, display: "grid", gap: 10 },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
