@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from "react";
 import {
   Home, Grid2X2, CalendarDays, User, FileText, Camera,
@@ -371,49 +372,27 @@ function Configurator({ go }) {
 
     const itemsText = quoteItems.map((item, index) => {
       return (
-        `${index + 1}. ${item.product}
-` +
-        `Raum: ${item.room || "-"}
-` +
-        `Masse: ${item.width} × ${item.height} cm
-` +
-        `Gewebe: ${item.meshType}
-` +
-        `Farbe: ${item.color} ${item.ral ? "(" + item.ral + ")" : ""}
-` +
-        `Sonderfarbe: ${item.extraColor ? "Ja" : "Nein"}
-` +
-        `Preis: CHF ${item.price}.00
-`
+        `${index + 1}. ${item.product}\n` +
+        `Raum: ${item.room || "-"}\n` +
+        `Masse: ${item.width} × ${item.height} cm\n` +
+        `Gewebe: ${item.meshType}\n` +
+        `Farbe: ${item.color} ${item.ral ? "(" + item.ral + ")" : ""}\n` +
+        `Sonderfarbe: ${item.extraColor ? "Ja" : "Nein"}\n` +
+        `Preis: CHF ${item.price}.00\n`
       );
-    }).join("
-");
+    }).join("\n");
 
     const subject = encodeURIComponent("Neue Offertenanfrage über Vindonissa Home");
     const body = encodeURIComponent(
-      `Neue Offertenanfrage
-
-` +
-      `Kundendaten
-` +
-      `Name: ${customer.name}
-` +
-      `E-Mail: ${customer.email}
-` +
-      `Telefon: ${customer.phone}
-` +
-      `Adresse: ${customer.address}
-
-` +
-      `Produkte
-
-${itemsText}
-` +
-      `Gesamtsumme: CHF ${quoteTotal}.00
-
-` +
-      `Nachricht:
-${customer.note}`
+      `Neue Offertenanfrage\n\n` +
+      `Kundendaten\n` +
+      `Name: ${customer.name}\n` +
+      `E-Mail: ${customer.email}\n` +
+      `Telefon: ${customer.phone}\n` +
+      `Adresse: ${customer.address}\n\n` +
+      `Produkte\n\n${itemsText}\n` +
+      `Gesamtsumme: CHF ${quoteTotal}.00\n\n` +
+      `Nachricht:\n${customer.note}`
     );
 
     window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
