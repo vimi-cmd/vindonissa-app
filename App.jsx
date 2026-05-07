@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from "react";
 import {
   Home, Grid2X2, CalendarDays, User, FileText, Camera,
@@ -267,6 +266,7 @@ function Configurator({ go }) {
   const [color, setColor] = useState(colors[0]);
   const [w, setW] = useState(120);
   const [h, setH] = useState(140);
+  const [quantity, setQuantity] = useState(1);
   const [room, setRoom] = useState("Wohnzimmer");
   const [meshType, setMeshType] = useState(products[0].meshOptions[0]);
   const [extraColor, setExtraColor] = useState(false);
@@ -286,9 +286,10 @@ function Configurator({ go }) {
     note: ""
   });
 
-  function selectProduct(p) {
-    setProduct(p);
-    setMeshType(p.meshOptions[0]);
+  function selectProduct(productId) {
+    const selected = products.find((p) => p.id === productId) || products[0];
+    setProduct(selected);
+    setMeshType(selected.meshOptions[0]);
   }
 
   const area = Math.max(0.5, (Number(w) * Number(h)) / 10000);
@@ -316,10 +317,10 @@ function Configurator({ go }) {
     const specialColorAllowed = product.id !== "lichtschacht";
     const specialColor = extraColor && specialColorAllowed ? Math.max(95, Math.round(9.5 * perimeter)) : 0;
 
-    const total = Math.round(base + meshAddon + specialColor);
+    const total = Math.round((base + meshAddon + specialColor) * Math.max(1, Number(quantity) || 1));
 
     return { base, meshAddon, specialColor, total };
-  }, [product, w, h, meshType, extraColor, area, perimeter]);
+  }, [product, w, h, quantity, meshType, extraColor, area, perimeter]);
 
   const quoteTotal = quoteItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
 
@@ -333,6 +334,7 @@ function Configurator({ go }) {
       id: Date.now(),
       room,
       product: product.label,
+      quantity: Math.max(1, Number(quantity) || 1),
       width: w,
       height: h,
       color: product.id === "lichtschacht" ? "Chromstahl" : color.name,
@@ -348,6 +350,7 @@ function Configurator({ go }) {
     saveQuoteItems([...quoteItems, item]);
 
     setRoom("");
+    setQuantity(1);
     setW(120);
     setH(140);
   }
@@ -374,6 +377,7 @@ function Configurator({ go }) {
       return (
         `${index + 1}. ${item.product}\n` +
         `Raum: ${item.room || "-"}\n` +
+        `Anzahl: ${item.quantity || 1} Stk.\n` +
         `Masse: ${item.width} × ${item.height} cm\n` +
         `Gewebe: ${item.meshType}\n` +
         `Farbe: ${item.color} ${item.ral ? "(" + item.ral + ")" : ""}\n` +
@@ -412,17 +416,24 @@ function Configurator({ go }) {
         />
 
         <h4>Produktgruppe</h4>
-        <div style={styles.productTabs}>
-          {products.map((p) => {
-            const Icon = p.icon;
-            return (
-              <button key={p.id} onClick={() => selectProduct(p)} style={{ ...styles.productTab, borderColor: product.id === p.id ? gold : "#eee" }}>
-                <Icon size={20} color="#a98745" />
-                <span>{p.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <select
+          style={styles.formInput}
+          value={product.id}
+          onChange={(e) => selectProduct(e.target.value)}
+        >
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>{p.label}</option>
+          ))}
+        </select>
+
+        <h4>Anzahl</h4>
+        <label style={styles.inputRow}>Anzahl
+          <input
+            style={styles.input}
+            value={quantity}
+            onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+          /> Stk.
+        </label>
 
         <h4>Masse in cm</h4>
         <label style={styles.inputRow}>Breite
@@ -465,7 +476,7 @@ function Configurator({ go }) {
         )}
 
         <div style={styles.priceDetails}>
-          <div><span>Aktueller Produktpreis</span><b>CHF {priceData.total}.00</b></div>
+          <div><span>Aktueller Preis total</span><b>CHF {priceData.total}.00</b></div>
         </div>
 
         <button style={styles.fullGold} onClick={addToQuote}>Produkt zur Offerte hinzufügen</button>
@@ -481,7 +492,7 @@ function Configurator({ go }) {
             <div style={{ flex: 1 }}>
               <b>{item.product}</b>
               <p style={styles.smallMuted}>
-                {item.room || "Ohne Raum"} · {item.width} × {item.height} cm<br />
+                {item.room || "Ohne Raum"} · {item.quantity || 1} Stk. · {item.width} × {item.height} cm<br />
                 {item.meshType} · {item.color}
               </p>
               <b>CHF {item.price}.00</b>
