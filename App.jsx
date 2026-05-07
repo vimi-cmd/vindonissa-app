@@ -459,22 +459,58 @@ ${booking.note}`
 }
 
 function Profile({ go }) {
+  const [customer, setCustomer] = useState({
+    name: "Vindonissa Kunde",
+    email: "kunde@email.ch",
+    phone: "+41 ",
+    address: "Brugg, Schweiz"
+  });
+
+  function update(field, value) {
+    setCustomer({ ...customer, [field]: value });
+  }
+
+  function saveProfile(e) {
+    e.preventDefault();
+    localStorage.setItem("vindonissaCustomer", JSON.stringify(customer));
+    alert("Kundendaten wurden lokal gespeichert.");
+  }
+
   return (
     <Phone>
-      <Header title="Profil" go={go} />
+      <Header title="Kundenportal" go={go} />
       <main style={styles.page}>
         <div style={styles.profileHead}>
           <div style={styles.avatar}>V</div>
-          <h1 style={styles.h1}>Vindonissa Kunde</h1>
-          <p style={styles.smallMuted}>Kundenportal</p>
+          <h1 style={styles.h1}>{customer.name || "Kundenportal"}</h1>
+          <p style={styles.smallMuted}>Ihre Daten, Projekte und Anfragen</p>
         </div>
 
-        <div style={styles.profileList}>
-          <ProfileRow icon={Mail} label="E-Mail" value="kunde@email.ch" />
-          <ProfileRow icon={PhoneCall} label="Telefon" value="+41 ..." />
-          <ProfileRow icon={MapPin} label="Adresse" value="Brugg, Schweiz" />
-          <ProfileRow icon={Settings} label="Einstellungen" value="App & Benachrichtigungen" />
+        <div style={styles.quickGrid}>
+          <QuickButton icon={FileText} label="Offerte anfragen" onClick={() => go("offers")} />
+          <QuickButton icon={CalendarDays} label="Termin buchen" onClick={() => go("appointments")} />
+          <QuickButton icon={PhoneCall} label="Anrufen" onClick={() => window.location.href = "tel:+41790000000"} />
         </div>
+
+        <h3>Kundendaten</h3>
+        <form onSubmit={saveProfile} style={styles.form}>
+          <input style={styles.formInput} placeholder="Name" value={customer.name} onChange={(e) => update("name", e.target.value)} />
+          <input style={styles.formInput} placeholder="E-Mail" value={customer.email} onChange={(e) => update("email", e.target.value)} />
+          <input style={styles.formInput} placeholder="Telefon" value={customer.phone} onChange={(e) => update("phone", e.target.value)} />
+          <input style={styles.formInput} placeholder="Adresse" value={customer.address} onChange={(e) => update("address", e.target.value)} />
+          <button type="submit" style={styles.fullGold}>Daten speichern</button>
+        </form>
+
+        <h3>Meine Projekte</h3>
+        <button style={styles.project} onClick={() => go("config")}>
+          <div style={styles.projectImg}></div>
+          <div style={{ flex: 1, textAlign: "left" }}>
+            <b>Terrassentür Wohnzimmer</b>
+            <p style={styles.smallMuted}>Drehrahmen · In Bearbeitung</p>
+            <span style={styles.badge}>Offerte offen</span>
+          </div>
+          <ChevronRight />
+        </button>
       </main>
       <BottomNav active="profile" go={go} />
     </Phone>
