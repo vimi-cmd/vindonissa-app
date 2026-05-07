@@ -286,6 +286,11 @@ function Configurator({ go }) {
   });
 
   const [photos, setPhotos] = useState([]);
+  const [showReview, setShowReview] = useState(false);
+  const [measureImage, setMeasureImage] = useState(null);
+  const [a4Pixels, setA4Pixels] = useState("");
+  const [windowPixels, setWindowPixels] = useState("");
+  const [measuredWidth, setMeasuredWidth] = useState(null);
 
   function handlePhotos(event) {
     const files = Array.from(event.target.files || []);
@@ -294,6 +299,30 @@ function Configurator({ go }) {
       url: URL.createObjectURL(file)
     }));
     setPhotos(previews);
+  }
+
+  function handleMeasureImage(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    setMeasureImage(URL.createObjectURL(file));
+    setA4Pixels("");
+    setWindowPixels("");
+    setMeasuredWidth(null);
+  }
+
+  function calculateApproxMeasure() {
+    const a4 = Number(a4Pixels);
+    const win = Number(windowPixels);
+
+    if (!a4 || !win) {
+      alert("Bitte zuerst beide Werte eintragen.");
+      return;
+    }
+
+    // A4-Blatt kurze Seite = 21 cm. Der Kunde soll die kurze Seite markieren.
+    const cm = Math.round((win / a4) * 21);
+    setMeasuredWidth(cm);
+    setW(cm);
   }
 
   function selectProduct(productId) {
@@ -383,6 +412,11 @@ function Configurator({ go }) {
       return;
     }
 
+    if (!customer.name || !customer.email || !customer.phone) {
+      alert("Bitte mindestens Name, E-Mail und Telefonnummer ausfüllen.");
+      return;
+    }
+
     const itemsText = quoteItems.map((item, index) => {
       return (
         `${index + 1}. ${item.product}\n` +
@@ -406,6 +440,7 @@ function Configurator({ go }) {
       `Adresse: ${customer.address}\n\n` +
       `Produkte\n\n${itemsText}\n` +
       `Gesamtsumme: CHF ${quoteTotal}.00\n\n` +
+      `Kamera-Messung: ${measuredWidth ? "ca. " + measuredWidth + " cm Breite mit A4-Referenz" : "nicht verwendet"}\n` +
       `Fotos: ${photos.length > 0 ? photos.map((p) => p.name).join(", ") : "Keine Fotos hinzugefügt"}\n` +
       `Hinweis: Fotos werden in dieser Testversion nicht automatisch angehängt. Bitte bei Bedarf separat senden.\n\n` +
       `Nachricht:\n${customer.note}`
@@ -446,6 +481,47 @@ function Configurator({ go }) {
             onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
           /> Stk.
         </label>
+
+        <h4>Kamera-Messung optional</h4>
+        <div style={styles.measureBox}>
+          <b>Ungefähre Breite mit A4-Blatt messen</b>
+          <ol style={styles.measureSteps}>
+            <li>A4-Blatt hochkant direkt an das Fenster halten.</li>
+            <li>Foto möglichst gerade von vorne aufnehmen.</li>
+            <li>Im Foto die kurze A4-Seite gedanklich messen: 21 cm.</li>
+            <li>Trage ein: Pixel/Skalenwert A4 und Pixel/Skalenwert Fensterbreite.</li>
+          </ol>
+
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleMeasureImage}
+            style={styles.fileInput}
+          />
+
+          {measureImage && (
+            <div style={styles.measurePreview}>
+              <img src={measureImage} alt="Messfoto" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
+          )}
+
+          <label style={styles.inputRow}>A4 kurze Seite
+            <input style={styles.input} value={a4Pixels} onChange={(e) => setA4Pixels(e.target.value)} /> px
+          </label>
+
+          <label style={styles.inputRow}>Fensterbreite
+            <input style={styles.input} value={windowPixels} onChange={(e) => setWindowPixels(e.target.value)} /> px
+          </label>
+
+          <button style={styles.secondaryButton} onClick={calculateApproxMeasure}>Breite berechnen</button>
+
+          {measuredWidth && (
+            <div style={styles.noticeBox}>
+              Geschätzte Breite: ca. {measuredWidth} cm. Bitte vor Bestellung prüfen.
+            </div>
+          )}
+        </div>
 
         <h4>Masse in cm</h4>
         <label style={styles.inputRow}>Breite
@@ -552,8 +628,52 @@ function Configurator({ go }) {
           <p style={styles.photoHint}>Hinweis: In dieser Testversion werden Fotos nicht automatisch per E-Mail angehängt.</p>
         </div>
 
-        <button style={styles.fullGold} onClick={sendQuoteRequest}>Offerte senden</button>
+        <button style={styles.fullGold} onClick={() => setShowReview(true)}>Offerte prüfen</button>
         <button style={styles.secondaryButton} onClick={clearQuote}>Liste leeren</button>
+
+        {showReview && (
+          <div style={styles.reviewOverlay}>
+            <div style={styles.reviewCard}>
+              <h2>Offerte prüfen</h2>
+              <p style={styles.smallMuted}>Bitte Angaben kontrollieren und danach absenden.</p>
+
+              <h4>Kundendaten</h4>
+              <div style={styles.reviewBox}>
+                <b>{customer.name || "Name fehlt"}</b>
+                <p style={styles.smallMuted}>
+                  {customer.email || "E-Mail fehlt"}<br />
+                  {customer.phone || "Telefon fehlt"}<br />
+                  {customer.address || "Adresse nicht angegeben"}
+                </p>
+              </div>
+
+              <h4>Produkte</h4>
+              {quoteItems.map((item) => (
+                <div key={item.id} style={styles.reviewItem}>
+                  <b>{item.product}</b>
+                  <p style={styles.smallMuted}>
+                    {item.room || "Ohne Raum"} · {item.quantity || 1} Stk.<br />
+                    {item.width} × {item.height} cm · {item.meshType}<br />
+                    {item.color}
+                  </p>
+                  <b>CHF {item.price}.00</b>
+                </div>
+              ))}
+
+              <div style={styles.totalBox}>
+                <span>Gesamtsumme</span>
+                <b>CHF {quoteTotal}.00</b>
+              </div>
+
+              <p style={styles.smallMuted}>
+                Fotos: {photos.length > 0 ? `${photos.length} Foto(s) ausgewählt` : "keine Fotos"}
+              </p>
+
+              <button style={styles.fullGold} onClick={sendQuoteRequest}>Offerte absenden</button>
+              <button style={styles.secondaryButton} onClick={() => setShowReview(false)}>Zurück bearbeiten</button>
+            </div>
+          </div>
+        )}
       </main>
 
       <div style={styles.priceBar}>
@@ -877,5 +997,12 @@ const styles = {
   photoGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 10 },
   photoPreview: { height: 70, borderRadius: 12, overflow: "hidden", background: "#eee" },
   photoHint: { color: "#9a7a34", fontSize: 11, fontWeight: 700, margin: "8px 0 0" },
+  reviewOverlay: { position: "absolute", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 20, display: "flex", alignItems: "end" },
+  reviewCard: { background: "#f7f3ea", width: "100%", maxHeight: "86%", overflowY: "auto", borderRadius: "26px 26px 0 0", padding: 22, boxShadow: "0 -12px 40px rgba(0,0,0,.25)" },
+  reviewBox: { background: "white", border: "1px solid #eee", borderRadius: 16, padding: 14, marginBottom: 12 },
+  reviewItem: { background: "white", border: "1px solid #eee", borderRadius: 16, padding: 14, marginBottom: 10 },
+  measureBox: { background: "white", border: "1px solid #eee", borderRadius: 18, padding: 14, marginBottom: 14 },
+  measureSteps: { paddingLeft: 18, color: "#555", fontSize: 12, lineHeight: 1.55, marginTop: 8 },
+  measurePreview: { height: 150, borderRadius: 14, overflow: "hidden", background: "#eee", margin: "10px 0" },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
