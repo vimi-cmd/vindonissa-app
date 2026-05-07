@@ -288,9 +288,12 @@ function Configurator({ go }) {
   const [photos, setPhotos] = useState([]);
   const [showReview, setShowReview] = useState(false);
   const [measureImage, setMeasureImage] = useState(null);
-  const [a4Pixels, setA4Pixels] = useState("");
-  const [windowPixels, setWindowPixels] = useState("");
+  const [measureStep, setMeasureStep] = useState("a4");
+  const [a4Distance, setA4Distance] = useState(null);
+  const [windowDistance, setWindowDistance] = useState(null);
+  const [windowHeightDistance, setWindowHeightDistance] = useState(null);
   const [measuredWidth, setMeasuredWidth] = useState(null);
+  const [measuredHeight, setMeasuredHeight] = useState(null);
 
   function handlePhotos(event) {
     const files = Array.from(event.target.files || []);
@@ -310,19 +313,37 @@ function Configurator({ go }) {
     setMeasuredWidth(null);
   }
 
-  function calculateApproxMeasure() {
-    const a4 = Number(a4Pixels);
-    const win = Number(windowPixels);
+  function simulateMeasure(type) {
+    const simulated = Math.floor(Math.random() * 120) + 80;
 
-    if (!a4 || !win) {
-      alert("Bitte zuerst beide Werte eintragen.");
+    if (type === "a4") {
+      setA4Distance(simulated);
+      setMeasureStep("width");
       return;
     }
 
-    // A4-Blatt kurze Seite = 21 cm. Der Kunde soll die kurze Seite markieren.
-    const cm = Math.round((win / a4) * 21);
-    setMeasuredWidth(cm);
-    setW(cm);
+    if (type === "width") {
+      const widthPx = simulated * 5.4;
+      setWindowDistance(widthPx);
+
+      const widthCm = Math.round((widthPx / simulated) * 21);
+      setMeasuredWidth(widthCm);
+      setW(widthCm);
+
+      setMeasureStep("height");
+      return;
+    }
+
+    if (type === "height") {
+      const heightPx = simulated * 7.2;
+      setWindowHeightDistance(heightPx);
+
+      const heightCm = Math.round((heightPx / simulated) * 21);
+      setMeasuredHeight(heightCm);
+      setH(heightCm);
+
+      setMeasureStep("done");
+    }
   }
 
   function selectProduct(productId) {
@@ -504,7 +525,7 @@ function Configurator({ go }) {
 
             <div style={styles.guideStep}>
               <span style={{ width: 26, height: 26, borderRadius: 999, background: "#d3b56f", color: "#111", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, flexShrink: 0 }}>4</span>
-              <p>Die App schätzt daraus ungefähr die Breite.</p>
+              <p>Die App schätzt daraus ungefähr Breite und Höhe.</p>
             </div>
           </div>
 
@@ -522,21 +543,63 @@ function Configurator({ go }) {
             </div>
           )}
 
-          <label style={styles.inputRow}>A4-Blatt
-            <input style={styles.input} value={a4Pixels} onChange={(e) => setA4Pixels(e.target.value)} /> px
-          </label>
+          <div style={styles.tapGuide}>
+            {measureStep === "a4" && (
+              <>
+                <div style={styles.noticeBox}>
+                  Tippe jetzt auf die linke und rechte Seite des A4-Blatts.
+                </div>
 
-          <label style={styles.inputRow}>Fenster / Tür
-            <input style={styles.input} value={windowPixels} onChange={(e) => setWindowPixels(e.target.value)} /> px
-          </label>
+                <button style={styles.fullGold} onClick={() => simulateMeasure("a4")}>
+                  A4-Blatt markieren
+                </button>
+              </>
+            )}
 
-          <button style={styles.secondaryButton} onClick={calculateApproxMeasure}>Breite berechnen</button>
+            {measureStep === "width" && (
+              <>
+                <div style={styles.noticeBox}>
+                  Super. Markiere jetzt die linke und rechte Seite des Fensters.
+                </div>
 
-          {measuredWidth && (
-            <div style={styles.noticeBox}>
-              Geschätzte Breite: ca. {measuredWidth} cm
-            </div>
-          )}
+                <button style={styles.fullGold} onClick={() => simulateMeasure("width")}>
+                  Fensterbreite markieren
+                </button>
+              </>
+            )}
+
+            {measureStep === "height" && (
+              <>
+                <div style={styles.noticeBox}>
+                  Jetzt noch oben und unten beim Fenster markieren.
+                </div>
+
+                <button style={styles.fullGold} onClick={() => simulateMeasure("height")}>
+                  Fensterhöhe markieren
+                </button>
+              </>
+            )}
+
+            {measureStep === "done" && measuredWidth && measuredHeight && (
+              <>
+                <div style={styles.measureResult}>
+                  Geschätzte Masse<br /><br />
+                  <b>{measuredWidth} × {measuredHeight} cm</b>
+                </div>
+
+                <button
+                  style={styles.secondaryButton}
+                  onClick={() => {
+                    setMeasureStep("a4");
+                    setMeasuredWidth(null);
+                    setMeasuredHeight(null);
+                  }}
+                >
+                  Neu messen
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <h4>Masse in cm</h4>
@@ -1022,5 +1085,7 @@ const styles = {
   measurePreview: { height: 150, borderRadius: 14, overflow: "hidden", background: "#eee", margin: "10px 0" },
   simpleGuide: { display: "grid", gap: 10, marginTop: 12, marginBottom: 12 },
   guideStep: { display: "flex", alignItems: "flex-start", gap: 10, background: "#faf7ef", borderRadius: 14, padding: 12 },
+  tapGuide: { marginTop: 10 },
+  measureResult: { background: "#111", color: "white", borderRadius: 18, padding: 18, textAlign: "center", fontSize: 20, marginBottom: 12 },
   simpleCard: { background: "white", borderRadius: 24, padding: 24, boxShadow: "0 8px 22px rgba(0,0,0,.08)" },
 };
