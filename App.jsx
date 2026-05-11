@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from "react";
 import {
   Home, Grid2X2, CalendarDays, User, FileText, Camera,
@@ -117,6 +116,38 @@ function saveStoredProject(project) {
   localStorage.setItem("vindonissaProjects", JSON.stringify([project, ...existing]));
 }
 
+function getStoredCustomer() {
+  try {
+    return JSON.parse(localStorage.getItem("vindonissaCustomer") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredCustomer(customer) {
+  const clean = {
+    name: customer.name || "",
+    email: customer.email || "",
+    phone: customer.phone || "",
+    address: customer.address || ""
+  };
+  localStorage.setItem("vindonissaCustomer", JSON.stringify(clean));
+}
+
+function upsertStoredProject(project) {
+  const existing = getStoredProjects();
+  const index = existing.findIndex((item) => item.id === project.id);
+
+  if (index >= 0) {
+    existing[index] = { ...existing[index], ...project };
+    localStorage.setItem("vindonissaProjects", JSON.stringify(existing));
+    return project.id;
+  }
+
+  localStorage.setItem("vindonissaProjects", JSON.stringify([project, ...existing]));
+  return project.id;
+}
+
 function formatDateTime() {
   return new Date().toLocaleString("de-CH", {
     day: "2-digit",
@@ -211,6 +242,7 @@ function QuickButton({ icon: Icon, label, onClick }) {
 
 function Dashboard({ go, openProject }) {
   const projects = getStoredProjects();
+  const customer = getStoredCustomer();
 
   return (
     <Phone>
@@ -247,7 +279,7 @@ function Dashboard({ go, openProject }) {
             <div style={{ flex: 1, textAlign: "left" }}>
               <b>{project.title}</b>
               <p style={styles.smallMuted}>{project.subtitle}</p>
-              <span style={styles.badge}>{project.type}</span>
+              <span style={styles.badge}>{project.status || project.type}</span>
             </div>
             <ChevronRight />
           </button>
@@ -316,17 +348,20 @@ function Configurator({ go, selectedProject }) {
       return selectedProject.customer;
     }
 
+    const stored = getStoredCustomer();
+
     return {
-      name: "",
-      email: "",
-      phone: "",
-      address: "",
+      name: stored.name || "",
+      email: stored.email || "",
+      phone: stored.phone || "",
+      address: stored.address || "",
       note: ""
     };
   });
 
   const [photos, setPhotos] = useState([]);
   const [showReview, setShowReview] = useState(false);
+  const [draftProjectId, setDraftProjectId] = useState(selectedProject?.id || null);
   const [measureImage, setMeasureImage] = useState(null);
   const [measureStep, setMeasureStep] = useState("a4");
   const [tapPoints, setTapPoints] = useState([]);
@@ -483,7 +518,40 @@ function Configurator({ go, selectedProject }) {
   }
 
   function updateCustomer(field, value) {
-    setCustomer({ ...customer, [field]: value });
+    const nextCustomer = { ...customer, [field]: value };
+    setCustomer(nextCustomer);
+    saveStoredCustomer(nextCustomer);
+  }
+
+  function saveDraftQuote() {
+    if (quoteItems.length === 0) {
+      alert("Bitte zuerst mindestens ein Produkt zur Offerte hinzufügen.");
+      return false;
+    }
+
+    const id = draftProjectId || Date.now();
+
+    upsertStoredProject({
+      id,
+      type: "Offerte",
+      status: "Noch nicht versendet",
+      title: customer.name ? `Offerte von ${customer.name}` : "Offertenentwurf",
+      subtitle: `${quoteItems.length} Produkt(e) · CHF ${quoteTotal}.00 · Noch nicht versendet`,
+      customer,
+      items: quoteItems,
+      total: quoteTotal,
+      createdAt: selectedProject?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    setDraftProjectId(id);
+    return true;
+  }
+
+  function openReview() {
+    if (saveDraftQuote()) {
+      setShowReview(true);
+    }
   }
 
   function sendQuoteRequest() {
@@ -526,16 +594,23 @@ function Configurator({ go, selectedProject }) {
       `Nachricht:\n${customer.note}`
     );
 
-    saveStoredProject({
-      id: Date.now(),
+    const id = draftProjectId || Date.now();
+
+    upsertStoredProject({
+      id,
       type: "Offerte",
+      status: "Versendet",
       title: customer.name ? `Offerte von ${customer.name}` : "Neue Offertenanfrage",
-      subtitle: `${quoteItems.length} Produkt(e) · CHF ${quoteTotal}.00 · ${formatDateTime()}`,
+      subtitle: `${quoteItems.length} Produkt(e) · CHF ${quoteTotal}.00 · Versendet`,
       customer,
       items: quoteItems,
       total: quoteTotal,
-      createdAt: new Date().toISOString()
+      createdAt: selectedProject?.createdAt || new Date().toISOString(),
+      sentAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
+
+    setDraftProjectId(id);
 
     window.location.href = `mailto:info@insektenschutzvindonissa.ch?subject=${subject}&body=${body}`;
   }
@@ -790,7 +865,7 @@ function Configurator({ go, selectedProject }) {
           <p style={styles.photoHint}>Hinweis: In dieser Testversion werden Fotos nicht automatisch per E-Mail angehängt.</p>
         </div>
 
-        <button style={styles.fullGold} onClick={() => setShowReview(true)}>Offerte prüfen</button>
+        <button style={styles.fullGold} onClick={openReview}>Offerte prüfen</button>
         <button style={styles.secondaryButton} onClick={clearQuote}>Liste leeren</button>
 
         {showReview && (
@@ -798,6 +873,7 @@ function Configurator({ go, selectedProject }) {
             <div style={styles.reviewCard}>
               <h2>Offerte prüfen</h2>
               <p style={styles.smallMuted}>Bitte Angaben kontrollieren und danach absenden.</p>
+              <div style={styles.noticeBox}>Diese Offerte ist bereits unter „Meine Projekte“ gespeichert – Status: Noch nicht versendet.</div>
 
               <h4>Kundendaten</h4>
               <div style={styles.reviewBox}>
@@ -894,20 +970,27 @@ function Appointments({ go, selectedProject }) {
       return selectedProject.booking;
     }
 
+    const stored = getStoredCustomer();
+
     return {
-      name: "",
-      email: "",
-      phone: "",
+      name: stored.name || "",
+      email: stored.email || "",
+      phone: stored.phone || "",
       type: "Ausmessung vor Ort",
       date: "",
       time: "",
-      address: "",
+      address: stored.address || "",
       note: ""
     };
   });
 
   function update(field, value) {
-    setBooking({ ...booking, [field]: value });
+    const nextBooking = { ...booking, [field]: value };
+    setBooking(nextBooking);
+
+    if (["name", "email", "phone", "address"].includes(field)) {
+      saveStoredCustomer(nextBooking);
+    }
   }
 
   function submitBooking(e) {
@@ -921,6 +1004,7 @@ function Appointments({ go, selectedProject }) {
     saveStoredProject({
       id: Date.now(),
       type: "Termin",
+      status: "Terminanfrage gespeichert",
       title: booking.name ? `Termin von ${booking.name}` : "Neue Terminanfrage",
       subtitle: `${booking.type} · ${booking.date || "Wunschdatum offen"} ${booking.time || ""}`,
       booking,
@@ -991,8 +1075,8 @@ function Profile({ go, openProject }) {
       <main style={styles.page}>
         <div style={styles.profileHead}>
           <div style={styles.avatar}>V</div>
-          <h1 style={styles.h1}>Kundenportal</h1>
-          <p style={styles.smallMuted}>Offerten, Termine und gespeicherte Projekte</p>
+          <h1 style={styles.h1}>{customer.name || "Kundenportal"}</h1>
+          <p style={styles.smallMuted}>{customer.email || "Offerten, Termine und gespeicherte Projekte"}</p>
         </div>
 
         <div style={styles.quickGridClean}>
@@ -1011,7 +1095,7 @@ function Profile({ go, openProject }) {
             <div>
               <b>{project.title}</b>
               <p style={styles.smallMuted}>{project.subtitle}</p>
-              <span style={styles.badge}>{project.type}</span>
+              <span style={styles.badge}>{project.status || project.type}</span>
             </div>
             <ChevronRight />
           </button>
